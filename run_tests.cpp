@@ -214,7 +214,7 @@ bool run_test(const char *filename) {
   CTinyJS s;
   registerFunctions(&s);
   registerMathFunctions(&s);
-  s.root->addChild("result", new CScriptVar("0",SCRIPTVAR_INTEGER));
+  s.root->addChild("result", new CScriptVar("0",TINYJS_SCRIPTVAR_INTEGER));
   try {
     s.execute(buffer);
   } catch (CScriptException *e) {

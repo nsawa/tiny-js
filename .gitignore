@@ -1,0 +1,17 @@
+.vs/
+
+x64/
+Debug/
+Release/
+
+TinyJS/x64/
+TinyJS/Debug/
+TinyJS/Release/
+
+Script/x64/
+Script/Debug/
+Script/Release/
+
+run_tests/x64/
+run_tests/Debug/
+run_tests/Release/

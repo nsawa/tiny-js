@@ -32,99 +32,85 @@
 // If defined, this keeps a note of all calls and where from in memory. This is slower, but good for debugging
 #define TINYJS_CALL_STACK
 
-#ifdef _WIN32
-#ifdef _DEBUG
-#define _CRTDBG_MAP_ALLOC
-#include <stdlib.h>
-#include <crtdbg.h>
-#endif
-#endif
+//#ifdef _WIN32
+//#ifdef _DEBUG
+//#define _CRTDBG_MAP_ALLOC
+//#include <stdlib.h>
+//#include <crtdbg.h>
+//#endif
+//#endif
 #include <string>
 #include <vector>
-
+//-----------------------------------------------------------------------------
 #ifndef TRACE
 #define TRACE printf
-#endif // TRACE
-
-
-const int TINYJS_LOOP_MAX_ITERATIONS = 8192;
-
-enum LEX_TYPES {
-    LEX_EOF = 0,
-    LEX_ID = 256,
-    LEX_INT,
-    LEX_FLOAT,
-    LEX_STR,
-
-    LEX_EQUAL,
-    LEX_TYPEEQUAL,
-    LEX_NEQUAL,
-    LEX_NTYPEEQUAL,
-    LEX_LEQUAL,
-    LEX_LSHIFT,
-    LEX_LSHIFTEQUAL,
-    LEX_GEQUAL,
-    LEX_RSHIFT,
-    LEX_RSHIFTUNSIGNED,
-    LEX_RSHIFTEQUAL,
-    LEX_PLUSEQUAL,
-    LEX_MINUSEQUAL,
-    LEX_PLUSPLUS,
-    LEX_MINUSMINUS,
-    LEX_ANDEQUAL,
-    LEX_ANDAND,
-    LEX_OREQUAL,
-    LEX_OROR,
-    LEX_XOREQUAL,
-    // reserved words
-#define LEX_R_LIST_START LEX_R_IF
-    LEX_R_IF,
-    LEX_R_ELSE,
-    LEX_R_DO,
-    LEX_R_WHILE,
-    LEX_R_FOR,
-    LEX_R_BREAK,
-    LEX_R_CONTINUE,
-    LEX_R_FUNCTION,
-    LEX_R_RETURN,
-    LEX_R_VAR,
-    LEX_R_TRUE,
-    LEX_R_FALSE,
-    LEX_R_NULL,
-    LEX_R_UNDEFINED,
-    LEX_R_NEW,
-
-	LEX_R_LIST_END /* always the last entry */
-};
-
-enum SCRIPTVAR_FLAGS {
-    SCRIPTVAR_UNDEFINED   = 0,
-    SCRIPTVAR_FUNCTION    = 1,
-    SCRIPTVAR_OBJECT      = 2,
-    SCRIPTVAR_ARRAY       = 4,
-    SCRIPTVAR_DOUBLE      = 8,  // floating point double
-    SCRIPTVAR_INTEGER     = 16, // integer number
-    SCRIPTVAR_STRING      = 32, // string
-    SCRIPTVAR_NULL        = 64, // it seems null is its own data type
-
-    SCRIPTVAR_NATIVE      = 128, // to specify this is a native function
-    SCRIPTVAR_NUMERICMASK = SCRIPTVAR_NULL |
-                            SCRIPTVAR_DOUBLE |
-                            SCRIPTVAR_INTEGER,
-    SCRIPTVAR_VARTYPEMASK = SCRIPTVAR_DOUBLE |
-                            SCRIPTVAR_INTEGER |
-                            SCRIPTVAR_STRING |
-                            SCRIPTVAR_FUNCTION |
-                            SCRIPTVAR_OBJECT |
-                            SCRIPTVAR_ARRAY |
-                            SCRIPTVAR_NULL,
-
-};
-
-#define TINYJS_RETURN_VAR "return"
-#define TINYJS_PROTOTYPE_CLASS "prototype"
-#define TINYJS_TEMP_NAME ""
-#define TINYJS_BLANK_DATA ""
+#endif//TRACE
+//-----------------------------------------------------------------------------
+#define TINYJS_LOOP_MAX_ITERATIONS		8192
+//-----------------------------------------------------------------------------
+//LEX_TYPES
+#define TINYJS_LEX_EOF				0
+//ID
+#define TINYJS_LEX_ID				(UCHAR_MAX+1)
+//ƒŠƒeƒ‰ƒ‹
+#define TINYJS_LEX_L_FLOAT			(UCHAR_MAX+2)
+#define TINYJS_LEX_L_INT			(UCHAR_MAX+3)
+#define TINYJS_LEX_L_STR			(UCHAR_MAX+4)
+//‰‰ŽZŽq
+#define TINYJS_LEX_O_ANDAND			(UCHAR_MAX+5)
+#define TINYJS_LEX_O_ANDEQUAL			(UCHAR_MAX+6)
+#define TINYJS_LEX_O_EQUAL			(UCHAR_MAX+7)
+#define TINYJS_LEX_O_GEQUAL			(UCHAR_MAX+8)
+#define TINYJS_LEX_O_LEQUAL			(UCHAR_MAX+9)
+#define TINYJS_LEX_O_LSHIFT			(UCHAR_MAX+10)
+#define TINYJS_LEX_O_LSHIFTEQUAL		(UCHAR_MAX+11)
+#define TINYJS_LEX_O_MINUSEQUAL			(UCHAR_MAX+12)
+#define TINYJS_LEX_O_MINUSMINUS			(UCHAR_MAX+13)
+#define TINYJS_LEX_O_NEQUAL			(UCHAR_MAX+14)
+#define TINYJS_LEX_O_NTYPEEQUAL			(UCHAR_MAX+15)
+#define TINYJS_LEX_O_OREQUAL			(UCHAR_MAX+16)
+#define TINYJS_LEX_O_OROR			(UCHAR_MAX+17)
+#define TINYJS_LEX_O_PLUSEQUAL			(UCHAR_MAX+18)
+#define TINYJS_LEX_O_PLUSPLUS			(UCHAR_MAX+19)
+#define TINYJS_LEX_O_RSHIFT			(UCHAR_MAX+20)
+#define TINYJS_LEX_O_RSHIFTEQUAL		(UCHAR_MAX+21)
+#define TINYJS_LEX_O_RSHIFTUNSIGNED		(UCHAR_MAX+22)
+#define TINYJS_LEX_O_TYPEEQUAL			(UCHAR_MAX+23)
+#define TINYJS_LEX_O_XOREQUAL			(UCHAR_MAX+24)
+//—\–ñŒê
+#define TINYJS_LEX_R_BREAK			(UCHAR_MAX+25)
+#define TINYJS_LEX_R_CONTINUE			(UCHAR_MAX+26)
+#define TINYJS_LEX_R_DO				(UCHAR_MAX+27)
+#define TINYJS_LEX_R_ELSE			(UCHAR_MAX+28)
+#define TINYJS_LEX_R_FALSE			(UCHAR_MAX+29)
+#define TINYJS_LEX_R_FOR			(UCHAR_MAX+30)
+#define TINYJS_LEX_R_FUNCTION			(UCHAR_MAX+31)
+#define TINYJS_LEX_R_IF				(UCHAR_MAX+32)
+#define TINYJS_LEX_R_NEW			(UCHAR_MAX+33)
+#define TINYJS_LEX_R_NULL			(UCHAR_MAX+34)
+#define TINYJS_LEX_R_RETURN			(UCHAR_MAX+35)
+#define TINYJS_LEX_R_TRUE			(UCHAR_MAX+36)
+#define TINYJS_LEX_R_UNDEFINED			(UCHAR_MAX+37)
+#define TINYJS_LEX_R_VAR			(UCHAR_MAX+38)
+#define TINYJS_LEX_R_WHILE			(UCHAR_MAX+39)
+//-----------------------------------------------------------------------------
+//SCRIPTVAR_FLAGS
+#define TINYJS_SCRIPTVAR_UNDEFINED		0
+#define TINYJS_SCRIPTVAR_NULL			(1<<0)		//it seems null is its own data type	//„¢					//„¢
+#define TINYJS_SCRIPTVAR_DOUBLE			(1<<1)		//floating point double			//„¥TINYJS_SCRIPTVAR_NUMERICMASK	//„ 
+#define TINYJS_SCRIPTVAR_INTEGER		(1<<2)		//integer number			//„£					//„ 
+#define TINYJS_SCRIPTVAR_STRING			(1<<3)		//string									//„¥TINYJS_SCRIPTVAR_VARTYPEMASK
+#define TINYJS_SCRIPTVAR_FUNCTION		(1<<4)												//„ 
+#define TINYJS_SCRIPTVAR_OBJECT			(1<<5)												//„ 
+#define TINYJS_SCRIPTVAR_ARRAY			(1<<6)												//„£
+#define TINYJS_SCRIPTVAR_NATIVE			(1<<7)		//to specify this is a native function
+#define TINYJS_SCRIPTVAR_NUMERICMASK		(TINYJS_SCRIPTVAR_NULL|TINYJS_SCRIPTVAR_DOUBLE|TINYJS_SCRIPTVAR_INTEGER)
+#define TINYJS_SCRIPTVAR_VARTYPEMASK		(TINYJS_SCRIPTVAR_NULL|TINYJS_SCRIPTVAR_DOUBLE|TINYJS_SCRIPTVAR_INTEGER|TINYJS_SCRIPTVAR_STRING|TINYJS_SCRIPTVAR_FUNCTION|TINYJS_SCRIPTVAR_OBJECT|TINYJS_SCRIPTVAR_ARRAY)
+//-----------------------------------------------------------------------------
+#define TINYJS_RETURN_VAR			"return"
+#define TINYJS_PROTOTYPE_CLASS			"prototype"
+#define TINYJS_TEMP_NAME			""
+#define TINYJS_BLANK_DATA			""
 
 /// convert the given string into a quoted string suitable for javascript
 std::string getJSString(const std::string &str);
@@ -210,7 +196,7 @@ public:
     CScriptVar *getParameter(const std::string &name); ///< If this is a function, get the parameter with the given name (for use by native functions)
 
     CScriptVarLink *findChild(const std::string &childName); ///< Tries to find a child with the given name, may return 0
-    CScriptVarLink *findChildOrCreate(const std::string &childName, int varFlags=SCRIPTVAR_UNDEFINED); ///< Tries to find a child with the given name, or will create it with the given flags
+    CScriptVarLink *findChildOrCreate(const std::string &childName, int varFlags=TINYJS_SCRIPTVAR_UNDEFINED); ///< Tries to find a child with the given name, or will create it with the given flags
     CScriptVarLink *findChildOrCreateByPath(const std::string &path); ///< Tries to find a child with the given path (separated by dots)
     CScriptVarLink *addChild(const std::string &childName, CScriptVar *child=NULL);
     CScriptVarLink *addChildNoDup(const std::string &childName, CScriptVar *child=NULL); ///< add a child overwriting any with the same name
@@ -234,16 +220,16 @@ public:
     void setArray();
     bool equals(CScriptVar *v);
 
-    bool isInt() { return (flags&SCRIPTVAR_INTEGER)!=0; }
-    bool isDouble() { return (flags&SCRIPTVAR_DOUBLE)!=0; }
-    bool isString() { return (flags&SCRIPTVAR_STRING)!=0; }
-    bool isNumeric() { return (flags&SCRIPTVAR_NUMERICMASK)!=0; }
-    bool isFunction() { return (flags&SCRIPTVAR_FUNCTION)!=0; }
-    bool isObject() { return (flags&SCRIPTVAR_OBJECT)!=0; }
-    bool isArray() { return (flags&SCRIPTVAR_ARRAY)!=0; }
-    bool isNative() { return (flags&SCRIPTVAR_NATIVE)!=0; }
-    bool isUndefined() { return (flags & SCRIPTVAR_VARTYPEMASK) == SCRIPTVAR_UNDEFINED; }
-    bool isNull() { return (flags & SCRIPTVAR_NULL)!=0; }
+    bool isInt() { return (flags&TINYJS_SCRIPTVAR_INTEGER)!=0; }
+    bool isDouble() { return (flags&TINYJS_SCRIPTVAR_DOUBLE)!=0; }
+    bool isString() { return (flags&TINYJS_SCRIPTVAR_STRING)!=0; }
+    bool isNumeric() { return (flags&TINYJS_SCRIPTVAR_NUMERICMASK)!=0; }
+    bool isFunction() { return (flags&TINYJS_SCRIPTVAR_FUNCTION)!=0; }
+    bool isObject() { return (flags&TINYJS_SCRIPTVAR_OBJECT)!=0; }
+    bool isArray() { return (flags&TINYJS_SCRIPTVAR_ARRAY)!=0; }
+    bool isNative() { return (flags&TINYJS_SCRIPTVAR_NATIVE)!=0; }
+    bool isUndefined() { return (flags & TINYJS_SCRIPTVAR_VARTYPEMASK) == TINYJS_SCRIPTVAR_UNDEFINED; }
+    bool isNull() { return (flags & TINYJS_SCRIPTVAR_NULL)!=0; }
     bool isBasic() { return firstChild==0; } ///< Is this *not* an array/object/etc
 
     CScriptVar *mathsOp(CScriptVar *b, int op); ///< do a maths op with another script variable

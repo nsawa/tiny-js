@@ -53,6 +53,7 @@ using namespace std;
 #define scReturnInt(a)      ( c->getReturnVar()->setInt(a) )
 #define scReturnDouble(a)   ( c->getReturnVar()->setDouble(a) )  
 
+/*
 #ifdef _MSC_VER
 namespace
 {
@@ -81,6 +82,7 @@ namespace
     }
 }
 #endif
+*/
 
 //Math.abs(x) - returns absolute of given value
 void scMathAbs(CScriptVar *c, void *userdata) {
