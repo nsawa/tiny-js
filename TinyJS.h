@@ -13,7 +13,7 @@
 #ifndef __TINYJS_H__
 #define __TINYJS_H__
 #include <stdio.h>
-#include <cstdlib>	//¦TODO:—vŒŸ“¢B<stdlib.h>‚É•Ï‚¦‚ç‚ê‚é‚©?
+#include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 #include <sys/stat.h>
