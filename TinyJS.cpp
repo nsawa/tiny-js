@@ -19,32 +19,9 @@
 #define CREATE_LINK(LINK, VAR) { if(!LINK || LINK->owned) LINK = new CScriptVarLink(VAR); else LINK->replaceWith(VAR); }
 //-----------------------------------------------------------------------------
 //Utils
-bool isWhitespace(char ch) {
-	return (ch==' ') || (ch=='\t') || (ch=='\n') || (ch=='\r');
-}
-bool isNumeric(char ch) {
-	return (ch>='0') && (ch<='9');
-}
 bool isNumber(const string& str) {
-	for(size_t i=0;i<str.size();i++)
-	if(!isNumeric(str[i])) return false;
-	return true;
-}
-bool isHexadecimal(char ch) {
-	return ((ch>='0') && (ch<='9')) ||
-		((ch>='a') && (ch<='f')) ||
-		((ch>='A') && (ch<='F'));
-}
-bool isAlpha(char ch) {
-	return ((ch>='a') && (ch<='z')) || ((ch>='A') && (ch<='Z')) || ch=='_';
-}
-bool isIDString(const char* s) {
-	if(!isAlpha(*s))
-		return false;
-	while(*s) {
-		if(!(isAlpha(*s) || isNumeric(*s)))
-			return false;
-		s++;
+	for(size_t i=0;i<str.size();i++) {
+		if(!isdigit(str[i])) { return false; }
 	}
 	return true;
 }
@@ -60,40 +37,33 @@ void replace(string& str, char textFrom, const char* textTo) {
 string getJSString(const string& str) {
 	string nStr = str;
 	for(size_t i=0;i<nStr.size();i++) {
-	const char* replaceWith = "";
-	bool replace = true;
-
-	switch(nStr[i]) {
+		const char* replaceWith = "";
+		bool replace = true;
+		char buffer[5];
+		switch(nStr[i]) {
 		case '\\': replaceWith = "\\\\"; break;
-		case '\n': replaceWith = "\\n"; break;
-		case '\r': replaceWith = "\\r"; break;
-		case '\a': replaceWith = "\\a"; break;
-		case '"': replaceWith = "\\\""; break;
-		default: {
-		int nCh = ((int)nStr[i]) & 0xFF;
-		if(nCh<32 || nCh>127) {
-			char buffer[5];
-			sprintf_s(buffer, 5, "\\x%02X", nCh);
-			replaceWith = buffer;
-		} else replace=false;
+		case '\n': replaceWith = "\\n";  break;
+		case '\r': replaceWith = "\\r";  break;
+		case '\a': replaceWith = "\\a";  break;
+		case '"':  replaceWith = "\\\""; break;
+		default:
+			{
+				int nCh = (unsigned char)nStr[i];
+				if(!isprint(nCh)) {
+					sprintf_s(buffer, 5, "\\x%02X", nCh);
+					replaceWith = buffer;
+				} else {
+					replace = false;
+				}
+			}
+			break;
+		}
+		if(replace) {
+			nStr = nStr.substr(0, i) + replaceWith + nStr.substr(i+1);
+			i += strlen(replaceWith)-1;
 		}
 	}
-
-	if(replace) {
-		nStr = nStr.substr(0, i) + replaceWith + nStr.substr(i+1);
-		i += strlen(replaceWith)-1;
-	}
-	}
 	return "\"" + nStr + "\"";
-}
-//Is the string alphanumeric.
-bool isAlphaNum(const string& str) {
-	if(str.size()==0) return true;
-	if(!isAlpha(str[0])) return false;
-	for(size_t i=0;i<str.size();i++)
-	if(!(isAlpha(str[i]) || isNumeric(str[i])))
-		return false;
-	return true;
 }
 //-----------------------------------------------------------------------------
 //CSCRIPTEXCEPTION
@@ -205,7 +175,7 @@ void CScriptLex::getNextCh() {
 void CScriptLex::getNextToken() {
 	tk = TINYJS_LEX_EOF;
 	tkStr.clear();
-	while(currCh && isWhitespace(currCh)) getNextCh();
+	while(currCh && isspace(currCh)) getNextCh();
 	//newline comments
 	if(currCh=='/' && nextCh=='/') {
 		while(currCh && currCh!='\n') getNextCh();
@@ -224,8 +194,8 @@ void CScriptLex::getNextToken() {
 	//record beginning of this token
 	tokenStart = dataPos-2;
 	//tokens
-	if(isAlpha(currCh)) {	//IDs
-		while(isAlpha(currCh) || isNumeric(currCh)) {
+	if(iscsymf(currCh)) {	//IDs
+		while(iscsym(currCh)) {
 			tkStr += currCh;
 			getNextCh();
 		}
@@ -245,7 +215,7 @@ void CScriptLex::getNextToken() {
 		else if(tkStr=="null") tk = TINYJS_LEX_R_NULL;
 		else if(tkStr=="undefined") tk = TINYJS_LEX_R_UNDEFINED;
 		else if(tkStr=="new") tk = TINYJS_LEX_R_NEW;
-	} else if(isNumeric(currCh)) {	//Numbers
+	} else if(isdigit(currCh)) {	//Numbers
 		bool isHex = false;
 		if(currCh=='0') { tkStr += currCh; getNextCh(); }
 		if(currCh=='x') {
@@ -253,7 +223,7 @@ void CScriptLex::getNextToken() {
 		tkStr += currCh; getNextCh();
 		}
 		tk = TINYJS_LEX_L_INT;
-		while(isNumeric(currCh) || (isHex && isHexadecimal(currCh))) {
+		while(isdigit(currCh) || (isHex && isxdigit(currCh))) {
 			tkStr += currCh;
 			getNextCh();
 		}
@@ -261,7 +231,7 @@ void CScriptLex::getNextToken() {
 			tk = TINYJS_LEX_L_FLOAT;
 			tkStr += '.';
 			getNextCh();
-			while(isNumeric(currCh)) {
+			while(isdigit(currCh)) {
 				tkStr += currCh;
 				getNextCh();
 			}
@@ -271,7 +241,7 @@ void CScriptLex::getNextToken() {
 		tk = TINYJS_LEX_L_FLOAT;
 		tkStr += currCh; getNextCh();
 		if(currCh=='-') { tkStr += currCh; getNextCh(); }
-		while(isNumeric(currCh)) {
+		while(isdigit(currCh)) {
 			tkStr += currCh; getNextCh();
 		}
 		}
@@ -635,15 +605,16 @@ void CScriptVar::setArrayIndex(int idx, CScriptVar* value) {
 	char sIdx[64];
 	sprintf_s(sIdx, sizeof(sIdx), "%d", idx);
 	CScriptVarLink* link = findChild(sIdx);
-
 	if(link) {
-	if(value->isUndefined())
-		removeLink(link);
-	else
-		link->replaceWith(value);
+		if(value->isUndefined()) {
+			removeLink(link);
+		} else {
+			link->replaceWith(value);
+		}
 	} else {
-	if(!value->isUndefined())
-		addChild(sIdx, value);
+		if(!value->isUndefined()) {
+			addChild(sIdx, value);
+		}
 	}
 }
 int CScriptVar::getArrayLength() {
@@ -652,11 +623,11 @@ int CScriptVar::getArrayLength() {
 
 	CScriptVarLink* link = firstChild;
 	while(link) {
-	if(isNumber(link->name)) {
-		int val = atoi(link->name.c_str());
-		if(val > highest) highest = val;
-	}
-	link = link->nextSibling;
+		if(isNumber(link->name)) {
+			int val = atoi(link->name.c_str());
+			if(val > highest) { highest = val; }
+		}
+		link = link->nextSibling;
 	}
 	return highest+1;
 }
@@ -899,44 +870,47 @@ void CScriptVar::trace(string indentStr, const string& name) {
 	string indent = indentStr+" ";
 	CScriptVarLink* link = firstChild;
 	while(link) {
-	link->var->trace(indent, link->name);
-	link = link->nextSibling;
+		link->var->trace(indent, link->name);
+		link = link->nextSibling;
 	}
 }
 string CScriptVar::getFlagsAsString() {
 	string flagstr = "";
-	if(flags&TINYJS_SCRIPTVAR_FUNCTION) flagstr = flagstr + "FUNCTION ";
-	if(flags&TINYJS_SCRIPTVAR_OBJECT) flagstr = flagstr + "OBJECT ";
-	if(flags&TINYJS_SCRIPTVAR_ARRAY) flagstr = flagstr + "ARRAY ";
-	if(flags&TINYJS_SCRIPTVAR_NATIVE) flagstr = flagstr + "NATIVE ";
-	if(flags&TINYJS_SCRIPTVAR_DOUBLE) flagstr = flagstr + "DOUBLE ";
-	if(flags&TINYJS_SCRIPTVAR_INTEGER) flagstr = flagstr + "INTEGER ";
-	if(flags&TINYJS_SCRIPTVAR_STRING) flagstr = flagstr + "STRING ";
+	if(flags & TINYJS_SCRIPTVAR_FUNCTION) { flagstr = flagstr + "FUNCTION "; }
+	if(flags & TINYJS_SCRIPTVAR_OBJECT)   { flagstr = flagstr + "OBJECT "; }
+	if(flags & TINYJS_SCRIPTVAR_ARRAY)    { flagstr = flagstr + "ARRAY "; }
+	if(flags & TINYJS_SCRIPTVAR_NATIVE)   { flagstr = flagstr + "NATIVE "; }
+	if(flags & TINYJS_SCRIPTVAR_DOUBLE)   { flagstr = flagstr + "DOUBLE "; }
+	if(flags & TINYJS_SCRIPTVAR_INTEGER)  { flagstr = flagstr + "INTEGER "; }
+	if(flags & TINYJS_SCRIPTVAR_STRING)   { flagstr = flagstr + "STRING "; }
 	return flagstr;
 }
 string CScriptVar::getParsableString() {
 	//Numbers can just be put in directly
-	if(isNumeric())
-	return getString();
-	if(isFunction()) {
-	ostringstream funcStr;
-	funcStr << "function (";
-	//get list of parameters
-	CScriptVarLink* link = firstChild;
-	while(link) {
-	funcStr << link->name;
-	if(link->nextSibling) funcStr << ",";
-	link = link->nextSibling;
+	if(isNumeric()) {
+		return getString();
 	}
-	//add function body
-	funcStr << ") " << getString();
-	return funcStr.str();
+	if(isFunction()) {
+		ostringstream funcStr;
+		funcStr << "function (";
+		//get list of parameters
+		CScriptVarLink* link = firstChild;
+		while(link) {
+			funcStr << link->name;
+			if(link->nextSibling) { funcStr << ","; }
+			link = link->nextSibling;
+		}
+		//add function body
+		funcStr << ") " << getString();
+		return funcStr.str();
 	}
 	//if it is a string then we quote it
-	if(isString())
-	return getJSString(getString());
-	if(isNull())
-	return "null";
+	if(isString()) {
+		return getJSString(getString());
+	}
+	if(isNull()) {
+		return "null";
+	}
 	return "undefined";
 }
 void CScriptVar::getJSON(ostringstream& destination, const string linePrefix) {
