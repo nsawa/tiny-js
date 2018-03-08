@@ -21,7 +21,6 @@
 #include <vector>
 #include <string>
 #include <sstream>
-#include <sstream>
 //-----------------------------------------------------------------------------
 #include "gc/leak_detector.h"
 #ifdef  __cplusplus
