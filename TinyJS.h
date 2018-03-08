@@ -21,6 +21,21 @@
 #include <vector>
 #include <string>
 #include <sstream>
+#include <sstream>
+//-----------------------------------------------------------------------------
+#include "gc/leak_detector.h"
+#ifdef  __cplusplus
+#pragma warning(push)
+#pragma warning(disable:4595)
+#include "gc/gc_cpp.h"
+#pragma warning(pop)
+#endif//__cplusplus
+#ifndef _WIN64
+#pragma comment(lib, "gc.lib")
+#else //_WIN64
+#pragma comment(lib, "gc_x64.lib")
+#endif//_WIN64
+//-----------------------------------------------------------------------------
 using namespace std;
 //-----------------------------------------------------------------------------
 #ifndef TRACE

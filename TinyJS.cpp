@@ -73,7 +73,7 @@ CScriptException::CScriptException(const string& exceptionText) {
 //-----------------------------------------------------------------------------
 //CSCRIPTLEX
 CScriptLex::CScriptLex(const string& input) {
-	data = _strdup(input.c_str());
+	data = strdup(input.c_str());
 	dataOwned = true;
 	dataStart = 0;
 	dataEnd = strlen(data);
