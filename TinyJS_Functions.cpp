@@ -55,7 +55,7 @@ static void scStringSubstring(CScriptVar* var, void* userdata) {
 	int hi = var->getParameter("hi")->getInt();
 	int l = hi-lo;
 	if(l>0 && lo>=0 && lo+l<=str.length()) {
-		var->getReturnVar()->setString(str.substr(lo, l));
+		var->getReturnVar()->setString(str.substr(lo, l).c_str());
 	} else {
 		var->getReturnVar()->setString("");
 	}
@@ -64,7 +64,7 @@ static void scStringCharAt(CScriptVar* var, void* userdata) {
 	string str = var->getParameter("this")->getString();
 	int p = var->getParameter("pos")->getInt();
 	if(p>=0 && p<str.length()) {
-		var->getReturnVar()->setString(str.substr(p, 1));
+		var->getReturnVar()->setString(str.substr(p, 1).c_str());
 	} else {
 		var->getReturnVar()->setString("");
 	}
@@ -86,12 +86,12 @@ static void scStringSplit(CScriptVar* var, void* userdata) {
 	int length = 0;
 	int pos = str.find(sep);
 	while(pos != -1) {
-		result->setArrayIndex(length++, new CScriptVar(str.substr(0,pos)));
+		result->setArrayIndex(length++, new CScriptVar(str.substr(0,pos).c_str()));
 		str = str.substr(pos+1);
 		pos = str.find(sep);
 	}
 	if(str.length() > 0) {
-		result->setArrayIndex(length++, new CScriptVar(str));
+		result->setArrayIndex(length++, new CScriptVar(str.c_str()));
 	}
 }
 static void scStringFromCharCode(CScriptVar* var, void* userdata) {
@@ -115,17 +115,17 @@ static void scIntegerValueOf(CScriptVar* var, void* userdata) {
 }
 static void scJSONStringify(CScriptVar* var, void* userdata) {
 	string result = var->getParameter("obj")->getJSON();
-	var->getReturnVar()->setString(result);
+	var->getReturnVar()->setString(result.c_str());
 }
 static void scExec(CScriptVar* var, void* userdata) {
 	CTinyJS* tinyJS = (CTinyJS*)userdata;
 	string str = var->getParameter("jsCode")->getString();
-	tinyJS->execute(str);
+	tinyJS->execute(str.c_str());
 }
 static void scEval(CScriptVar* var, void* userdata) {
 	CTinyJS* tinyJS = (CTinyJS*)userdata;
 	string str = var->getParameter("jsCode")->getString();
-	var->setReturnVar(tinyJS->evaluateComplex(str).var);
+	var->setReturnVar(tinyJS->evaluateComplex(str.c_str()).var);
 }
 static void scArrayContains(CScriptVar* var, void* userdata) {
 	CScriptVar* obj = var->getParameter("obj");
@@ -179,7 +179,7 @@ static void scArrayJoin(CScriptVar* var, void* userdata) {
 		}
 		sstr += arr->getArrayIndex(i)->getString();
 	}
-	var->getReturnVar()->setString(sstr);
+	var->getReturnVar()->setString(sstr.c_str());
 }
 //-----------------------------------------------------------------------------
 //Register Functions

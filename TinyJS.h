@@ -41,10 +41,10 @@ public:
 	string(const char* p = "") {
 		m_p = strdup(p);
 	}
-	string(const string& s) {
+	string(const string& s) {	//コピーコンストラクタ
 		m_p = strdup(s.m_p);
 	}
-	string& operator =(const string& s) {
+	string& operator =(const string& s) {	//代入演算子
 		free(m_p);
 		m_p = strdup(s.m_p);
 		return *this;
@@ -135,14 +135,14 @@ public:
 		m_n = n;
 		m_p = new (GC) T[n];
 	}
-	vector(const vector<T>& v) {
+	vector(const vector<T>& v) {	//コピーコンストラクタ
 		m_n = v.m_n;
 		m_p = new (GC) T[v.m_n];
 		for(int i = 0; i < v.m_n; i++) {
 			m_p[i] = v.m_p[i];
 		}
 	}
-	vector& operator =(const vector<T>& v) {
+	vector& operator =(const vector<T>& v) {	//代入演算子
 		delete [] m_p;
 		m_n = v.m_n;
 		m_p = new (GC) T[v.m_n];
@@ -272,27 +272,26 @@ private:
 #define TINYJS_BLANK_DATA		""
 //-----------------------------------------------------------------------------
 //Convert the given string into a quoted string suitable for javascript.
-string getJSString(const string& str);
+string getJSString(const char* str);
 //-----------------------------------------------------------------------------
 class CScriptException {
 public:
-	string text;
 	CScriptException(const char* exceptionText);
-	CScriptException(const string& exceptionText);
+	string text;
 };
 //-----------------------------------------------------------------------------
 class CScriptLex {
 public:
-	CScriptLex(const string& input);
+	CScriptLex(const char* input);
 	CScriptLex(CScriptLex* owner, int startChar, int endChar);
-	~CScriptLex(void);
+	~CScriptLex();
 
-	char currCh, nextCh;
-	int tk;			//The type of the token that we have.
-	int tokenStart;		//Position in the data at the beginning of the token we have here.
-	int tokenEnd;		//Position in the data at the last character of the token we have here.
-	int tokenLastEnd;	//Position in the data at the last character of the last token.
-	string tkStr;		//Data contained in the token we have here.
+	int	currCh, nextCh;
+	int	tk;		//The type of the token that we have.
+	int	tokenStart;	//Position in the data at the beginning of the token we have here.
+	int	tokenEnd;	//Position in the data at the last character of the token we have here.
+	int	tokenLastEnd;	//Position in the data at the last character of the last token.
+	string	tkStr;		//Data contained in the token we have here.
 
 	void match(int expected_tk);			//Lexical match wotsit.
 	static string getTokenStr(int token);		//Get the string representation of the given token.
@@ -301,15 +300,15 @@ public:
 	string getSubString(int pos);			//Return a sub-string from the given position up until right now.
 	CScriptLex* getSubLex(int lastPosition);	//Return a sub-lexer from the given position up until right now.
 
-	string getPosition(int pos=-1);			//Return a string representing the position in lines and columns of the character pos given.
+	string getPosition(int pos = -1);		//Return a string representing the position in lines and columns of the character pos given.
 
 protected:
 	//When we go into a loop, we use getSubLex() to get a lexer for just the sub-part of the relevant string.
 	//This doesn't re-allocate and copy the string, but instead copies the data pointer and sets dataOwned to false, and dataStart/dataEnd to the relevant things.
-	char* data;			//Data string to get tokens from.
-	int dataStart, dataEnd;		//Start and end position in data string.
-	bool dataOwned;			//Do we own this data string?
-	int dataPos;			//Position in data (we CAN go past the end of the string here)
+	char*	data;			//Data string to get tokens from.
+	int	dataStart, dataEnd;	//Start and end position in data string.
+	bool	dataOwned;		//Do we own this data string?
+	int	dataPos;		//Position in data (we CAN go past the end of the string here)
 
 	void getNextCh();
 	void getNextToken();		//Get the text token from our text string
@@ -326,7 +325,7 @@ public:
 	CScriptVar* var;
 	bool owned;
 
-	CScriptVarLink(CScriptVar* var, const string& name = TINYJS_TEMP_NAME);
+	CScriptVarLink(CScriptVar* var, const char* name = TINYJS_TEMP_NAME);
 	CScriptVarLink(const CScriptVarLink& link);	//Copy constructor.
 	~CScriptVarLink();
 	void replaceWith(CScriptVar* newVar);		//Replace the Variable pointed to.
@@ -338,22 +337,22 @@ public:
 //Variable class (containing a doubly-linked list of children).
 class CScriptVar {
 public:
-	CScriptVar();						//Create undefined.
-	CScriptVar(const string& varData, int varFlags);	//User defined.
-	CScriptVar(const string& str);				//Create a string.
+	CScriptVar();					//Create undefined.
+	CScriptVar(const char* varData, int varFlags);	//User defined.
+	CScriptVar(const char* str);			//Create a string.
 	CScriptVar(double varData);
 	CScriptVar(int val);
-	~CScriptVar(void);
+	~CScriptVar();
 
 	CScriptVar* getReturnVar();				//If this is a function, get the result value (for use by native functions).
 	void setReturnVar(CScriptVar* var);			//Set the result value. Use this when setting complex return data as it avoids a deepCopy().
-	CScriptVar* getParameter(const string& name);		//If this is a function, get the parameter with the given name (for use by native functions).
+	CScriptVar* getParameter(const char* name);		//If this is a function, get the parameter with the given name (for use by native functions).
 
-	CScriptVarLink* findChild(const string& childName);							//Tries to find a child with the given name, may return 0.
-	CScriptVarLink* findChildOrCreate(const string& childName, int varFlags=TINYJS_SCRIPTVAR_UNDEFINED);	//Tries to find a child with the given name, or will create it with the given flags.
-	CScriptVarLink* findChildOrCreateByPath(const string& path);						//Tries to find a child with the given path (separated by dots).
-	CScriptVarLink* addChild(const string& childName, CScriptVar* child=NULL);
-	CScriptVarLink* addChildNoDup(const string& childName, CScriptVar* child=NULL);	//add a child overwriting any with the same name.
+	CScriptVarLink* findChild(const char* childName);							//Tries to find a child with the given name, may return 0.
+	CScriptVarLink* findChildOrCreate(const char* childName, int varFlags = TINYJS_SCRIPTVAR_UNDEFINED);	//Tries to find a child with the given name, or will create it with the given flags.
+	CScriptVarLink* findChildOrCreateByPath(const char* path);						//Tries to find a child with the given path (separated by dots).
+	CScriptVarLink* addChild(const char* childName, CScriptVar* child = NULL);
+	CScriptVarLink* addChildNoDup(const char* childName, CScriptVar* child = NULL);	//add a child overwriting any with the same name.
 	void removeChild(CScriptVar* child);
 	void removeLink(CScriptVarLink* link);			//Remove a specific link (this is faster than finding via a child).
 	void removeAllChildren();
@@ -365,11 +364,11 @@ public:
 	int getInt();
 	bool getBool() { return getInt() != 0; }
 	double getDouble();
-	const string& getString();
+	string getString();
 	string getParsableString();				//Get data as a parsable javascript string.
 	void setInt(int num);
 	void setDouble(double val);
-	void setString(const string& str);
+	void setString(const char* str);
 	void setUndefined();
 	void setArray();
 	bool equals(CScriptVar* v);
@@ -390,9 +389,9 @@ public:
 	void copyValue(CScriptVar* val);				//Copy the value from the value given.
 	CScriptVar* deepCopy();						//Deep copy this node and return the result.
 
-	void trace(string indentStr = "", const string& name = "");	//Dump out the contents of this using trace.
+	void trace(const char* indentStr = "", const char* name = "");	//Dump out the contents of this using trace.
 	string getFlagsAsString();					//For debugging - just dump a string version of the flags.
-	string getJSON(const string linePrefix = "");			//Write out all the JS code needed to recreate this script variable to the stream (as JSON).
+	string getJSON(const char* linePrefix = "");			//Write out all the JS code needed to recreate this script variable to the stream (as JSON).
 	void setCallback(JSCallback callback, void* userdata);		//Set the callback for native functions.
 
 	CScriptVarLink* firstChild;
@@ -423,15 +422,15 @@ public:
 	CTinyJS();
 	~CTinyJS();
 
-	void execute(const string& code);
+	void execute(const char* code);
 	//Evaluate the given code and return a link to a javascript object, useful for(dangerous) JSON parsing.
 	//If nothing to return, will return 'undefined' variable type.
 	//CScriptVarLink is returned as this will automatically unref the result as it goes out of scope.
 	//If you want to keep it, you must use ref() and unref().
-	CScriptVarLink evaluateComplex(const string& code);
+	CScriptVarLink evaluateComplex(const char* code);
 	//Evaluate the given code and return a string.
 	//If nothing to return, will return 'undefined'.
-	string evaluate(const string& code);
+	string evaluate(const char* code);
 
 	//Add a native function to be called from TinyJS.
 	//example:
@@ -440,29 +439,31 @@ public:
 	//or
 	//│void scSubstring(CScriptVar* var, void* userdata) { ... }
 	//│tinyJS->addNative("function String.substring(lo, hi)", scSubstring, 0);
-	void addNative(const string& funcDesc, JSCallback ptr, void* userdata);
+	void addNative(const char* funcDesc, JSCallback ptr, void* userdata);
 
 	//Get the given variable specified by a path (var1.var2.etc), or return 0.
-	CScriptVar* getScriptVariable(const string& path);
-	//Get the value of the given variable, or return 0.
-	const string* getVariable(const string& path);
+	CScriptVar* getScriptVariable(const char* path);
+//{{削除。この関数がNULLを返せるようにするために他の関数に色々無理が生じている。この関数を廃止して明示的にgetScriptVariable()を使うようにすれば自然になる。だいたい当関数はアプリケーション用に用意されたもののようで、ライブラリ内の実装においては使用されていなかった。
+//	//Get the value of the given variable, or return 0.
+//	const string* getVariable(const char* path);
+//}}削除。この関数がNULLを返せるようにするために他の関数に色々無理が生じている。この関数を廃止して明示的にgetScriptVariable()を使うようにすれば自然になる。だいたい当関数はアプリケーション用に用意されたもののようで、ライブラリ内の実装においては使用されていなかった。
 	//Set the value of the given variable, return trur if it exists and gets set.
-	bool setVariable(const string& path, const string& varData);
+	bool setVariable(const char* path, const char* varData);
 
 	//Send all variables to stdout.
 	void trace();
 
-	CScriptVar* root;		//Root of symbol table.
+	CScriptVar*		root;		//Root of symbol table.
 private:
-	CScriptLex* l;			//Current lexer.
-	vector<CScriptVar*> scopes;	//Stack of scopes when parsing.
+	CScriptLex*		l;		//Current lexer.
+	vector<CScriptVar*>	scopes;		//Stack of scopes when parsing.
 #ifdef  TINYJS_CALL_STACK
-	vector<string> call_stack;	//Names of places called so we can show when erroring.
+	vector<string>		call_stack;	//Names of places called so we can show when erroring.
 #endif//TINYJS_CALL_STACK
 
-	CScriptVar* stringClass;	//Built in string class.
-	CScriptVar* objectClass;	//Built in object class.
-	CScriptVar* arrayClass;		//Built in array class.
+	CScriptVar*		stringClass;	//Built in string class.
+	CScriptVar*		objectClass;	//Built in object class.
+	CScriptVar*		arrayClass;	//Built in array class.
 
 	//Parsing - in order of precedence.
 	CScriptVarLink* functionCall(bool& execute, CScriptVarLink* function, CScriptVar* parent);
@@ -481,7 +482,7 @@ private:
 	CScriptVarLink* parseFunctionDefinition();
 	void parseFunctionArguments(CScriptVar* funcVar);
 
-	CScriptVarLink* findInScopes(const string& childName);				//Finds a child, looking recursively up the scopes.
-	CScriptVarLink* findInParentClasses(CScriptVar* object, const string& name);	//Look up in any parent classes of the given object.
+	CScriptVarLink* findInScopes(const char* childName);				//Finds a child, looking recursively up the scopes.
+	CScriptVarLink* findInParentClasses(CScriptVar* object, const char* name);	//Look up in any parent classes of the given object.
 };
 #endif//__TINYJS_H__
