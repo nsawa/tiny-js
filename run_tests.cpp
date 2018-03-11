@@ -32,8 +32,8 @@ static bool run_test(const char* filename) {
 		printf("Unable to open file! '%s'\n", filename);
 		return false;
 	}
-	char* buffer = new char[size + 1];
-	int actualRead = fread(buffer, 1, size, file);
+	char* buffer = new (GC) char[size + 1];
+	int actualRead = (int)fread(buffer, 1, size, file);
 	buffer[actualRead] = 0;
 	fclose(file);
 
@@ -54,7 +54,7 @@ static bool run_test(const char* filename) {
 		sprintf(path, "%s.fail.js", filename);
 		FILE* f = fopen(path, "wt");
 		if(f) {
-			ostringstream symbols;
+			std::ostringstream symbols;
 			tinyJS->root->getJSON(symbols);
 			fprintf(f, "%s", symbols.str().c_str());
 			fclose(f);
@@ -67,6 +67,8 @@ static bool run_test(const char* filename) {
 	return pass;
 }
 int main(int argc, char** argv) {
+	putenv("GC_LOG_FILE=CON");
+	GC_set_find_leak(1);
 	if(argc == 1) {
 		int test_num, count = 0, passed = 0;
 		for(test_num = 1; test_num <= 999; test_num++) {
@@ -76,6 +78,7 @@ int main(int argc, char** argv) {
 			if(stat(path, &st)) { break; }	//Check if the file exists - if not, assume we're at the end of our tests.
 			count++;
 			if(run_test(path)) { passed++; }
+			CHECK_LEAKS();
 		}
 		printf("Done. %d tests, %d pass, %d fail\n", count, passed, count - passed);
 		return !(count == passed);

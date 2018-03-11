@@ -37,16 +37,16 @@ static void scMathRandInt(CScriptVar* var, void* userdata) {
 static void scCharToInt(CScriptVar* var, void* userdata) {
 	string str = var->getParameter("ch")->getString();;
 	int val = 0;
-	if(str.length()>0) {
-		val = (int)str.c_str()[0];
+	if(str.length() > 0) {
+		val = str.c_str()[0];
 	}
 	var->getReturnVar()->setInt(val);
 }
 static void scStringIndexOf(CScriptVar* var, void* userdata) {
 	string str = var->getParameter("this")->getString();
 	string search = var->getParameter("search")->getString();
-	size_t p = str.find(search);
-	int val = (p==string::npos) ? -1 : p;
+	int p = str.find(search);
+	int val = (p == -1) ? -1 : p;	//¦–³‘Êˆ—!!!!!!!!!!!!
 	var->getReturnVar()->setInt(val);
 }
 static void scStringSubstring(CScriptVar* var, void* userdata) {
@@ -54,7 +54,7 @@ static void scStringSubstring(CScriptVar* var, void* userdata) {
 	int lo = var->getParameter("lo")->getInt();
 	int hi = var->getParameter("hi")->getInt();
 	int l = hi-lo;
-	if(l>0 && lo>=0 && lo+l<=(int)str.length()) {
+	if(l>0 && lo>=0 && lo+l<=str.length()) {
 		var->getReturnVar()->setString(str.substr(lo, l));
 	} else {
 		var->getReturnVar()->setString("");
@@ -63,7 +63,7 @@ static void scStringSubstring(CScriptVar* var, void* userdata) {
 static void scStringCharAt(CScriptVar* var, void* userdata) {
 	string str = var->getParameter("this")->getString();
 	int p = var->getParameter("pos")->getInt();
-	if(p>=0 && p<(int)str.length()) {
+	if(p>=0 && p<str.length()) {
 		var->getReturnVar()->setString(str.substr(p, 1));
 	} else {
 		var->getReturnVar()->setString("");
@@ -72,8 +72,8 @@ static void scStringCharAt(CScriptVar* var, void* userdata) {
 static void scStringCharCodeAt(CScriptVar* var, void* userdata) {
 	string str = var->getParameter("this")->getString();
 	int p = var->getParameter("pos")->getInt();
-	if(p>=0 && p<(int)str.length()) {
-		var->getReturnVar()->setInt(str.at(p));
+	if((p >= 0) && (p < str.length())) {
+		var->getReturnVar()->setInt(str[p]);
 	} else {
 		var->getReturnVar()->setInt(0);
 	}
@@ -84,13 +84,13 @@ static void scStringSplit(CScriptVar* var, void* userdata) {
 	CScriptVar* result = var->getReturnVar();
 	result->setArray();
 	int length = 0;
-	size_t pos = str.find(sep);
-	while(pos != string::npos) {
+	int pos = str.find(sep);
+	while(pos != -1) {
 		result->setArrayIndex(length++, new CScriptVar(str.substr(0,pos)));
 		str = str.substr(pos+1);
 		pos = str.find(sep);
 	}
-	if(str.size()>0) {
+	if(str.length() > 0) {
 		result->setArrayIndex(length++, new CScriptVar(str));
 	}
 }
@@ -114,9 +114,9 @@ static void scIntegerValueOf(CScriptVar* var, void* userdata) {
 	var->getReturnVar()->setInt(val);
 }
 static void scJSONStringify(CScriptVar* var, void* userdata) {
-	ostringstream result;
+	std::ostringstream result;
 	var->getParameter("obj")->getJSON(result);
-	var->getReturnVar()->setString(result.str());
+	var->getReturnVar()->setString(result.str().c_str());
 }
 static void scExec(CScriptVar* var, void* userdata) {
 	CTinyJS* tinyJS = (CTinyJS*)userdata;
@@ -156,13 +156,14 @@ static void scArrayRemove(CScriptVar* var, void* userdata) {
 	//renumber
 	v = var->getParameter("this")->firstChild;
 	while(v) {
-	int n = v->getIntName();
-	int newn = n;
-	for(size_t i=0;i<removedIndices.size();i++)
-		if(n>=removedIndices[i]) {
-			newn--;
+		int n = v->getIntName();
+		int newn = n;
+		for(int i = 0; i < removedIndices.size(); i++) {
+			if(n >= removedIndices[i]) {
+				newn--;
+			}
 		}
-		if(newn!=n) {
+		if(newn != n) {
 			v->setIntName(newn);
 		}
 		v = v->nextSibling;
@@ -171,15 +172,15 @@ static void scArrayRemove(CScriptVar* var, void* userdata) {
 static void scArrayJoin(CScriptVar* var, void* userdata) {
 	string sep = var->getParameter("separator")->getString();
 	CScriptVar* arr = var->getParameter("this");
-	ostringstream sstr;
+	std::ostringstream sstr;
 	int l = arr->getArrayLength();
 	for(int i=0;i<l;i++) {
 		if(i>0) {
-			sstr << sep;
+			sstr << sep.c_str();
 		}
-		sstr << arr->getArrayIndex(i)->getString();
+		sstr << arr->getArrayIndex(i)->getString().c_str();
 	}
-	var->getReturnVar()->setString(sstr.str());
+	var->getReturnVar()->setString(sstr.str().c_str());
 }
 //-----------------------------------------------------------------------------
 //Register Functions

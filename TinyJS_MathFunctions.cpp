@@ -170,7 +170,7 @@ static void scMathSqr(CScriptVar* var, void* userdata) {
 }
 //Math.sqrt(a) - Returns square root of given value.
 static void scMathSqrt(CScriptVar* var, void* userdata) {
-	scReturnDouble(sqrtf(scGetDouble("a")));
+	scReturnDouble(sqrt(scGetDouble("a")));
 }
 //-----------------------------------------------------------------------------
 //Register Functions.

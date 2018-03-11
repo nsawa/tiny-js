@@ -35,7 +35,171 @@
 #pragma comment(lib, "gc_x64.lib")
 #endif//_WIN64
 //-----------------------------------------------------------------------------
-using namespace std;
+//using namespace std;
+//-----------------------------------------------------------------------------
+class string : public gc_cleanup {
+public:
+	string(const char* p = "") {
+		m_p = strdup(p);
+	}
+	string(const string& s) {
+		m_p = strdup(s.m_p);
+	}
+	string& operator =(const string& s) {
+		free(m_p);
+		m_p = strdup(s.m_p);
+		return *this;
+	}
+	~string() {
+		free(m_p);
+	}
+	const char* c_str() const {
+		return m_p;
+	}
+	int length() const {
+		return (int)strlen(m_p);
+	}
+	int find(int c, int i = 0) const {
+		char s[2] = { (char)c, '\0' };
+		return find(s, i);
+	}
+	int find(const char* p, int i = 0) const {
+		assert((unsigned)i <= strlen(m_p));
+		p = strstr(m_p + i, p);
+		return p ? (int)(p - m_p) : -1;
+	}
+	int find(const string& s, int i = 0) const {
+		return find(s.c_str(), i);
+	}
+	string substr(int i, int n = -1) const {
+		assert((unsigned)i <= strlen(m_p));
+		string t;
+		if(n == -1) {
+			t.m_p = strdup(m_p + i);
+		} else {
+			t.m_p = strndup(m_p + i, n);
+		}
+		return t;
+	}
+	int operator [](int i) const {
+		assert((unsigned)i < (unsigned)strlen(m_p));
+		return m_p[i];
+	}
+	void clear() {
+		free(m_p);
+		m_p = strdup("");
+	}
+	string& operator +=(int c) {
+		char s[2] = { (char)c, '\0' };
+		return *this += s;
+	}
+	string& operator +=(const char* p) {
+		m_p = (char*)realloc(m_p, strlen(m_p) + strlen(p) + 1);
+		strcat(m_p, p);
+		return *this;
+	}
+	string& operator +=(const string& s) {
+		return *this += s.c_str();
+	}
+	int compare(const char* p) const   { return strcmp(m_p, p); }
+	int compare(const string& s) const { return compare(s.m_p); }
+	int operator ==(const char* p) const   { return compare(    p) == 0; }
+	int operator ==(const string& s) const { return compare(s.m_p) == 0; }
+	int operator !=(const char* p) const   { return compare(    p) != 0; }
+	int operator !=(const string& s) const { return compare(s.m_p) != 0; }
+	int operator < (const char* p) const   { return compare(    p) <  0; }
+	int operator < (const string& s) const { return compare(s.m_p) <  0; }
+	int operator <=(const char* p) const   { return compare(    p) <= 0; }
+	int operator <=(const string& s) const { return compare(s.m_p) <= 0; }
+	int operator > (const char* p) const   { return compare(    p) >  0; }
+	int operator > (const string& s) const { return compare(s.m_p) >  0; }
+	int operator >=(const char* p) const   { return compare(    p) >= 0; }
+	int operator >=(const string& s) const { return compare(s.m_p) >= 0; }
+private:
+	char*	m_p;
+};
+inline string operator +(const string& s1, const string& s2) {
+	string t(s1);
+	return t += s2;
+}
+inline string operator +(const char* p, const string& s) {
+	return string(p) + s;
+}
+inline string operator +(const string& s, const char* p) {
+	return s + string(p);
+}
+//-----------------------------------------------------------------------------
+template<class T> class vector : public gc_cleanup {
+public:
+	vector(int n = 0) {
+		m_n = n;
+		m_p = new (GC) T[n];
+	}
+	vector(const vector<T>& v) {
+		m_n = v.m_n;
+		m_p = new (GC) T[v.m_n];
+		for(int i = 0; i < v.m_n; i++) {
+			m_p[i] = v.m_p[i];
+		}
+	}
+	vector& operator =(const vector<T>& v) {
+		delete [] m_p;
+		m_n = v.m_n;
+		m_p = new (GC) T[v.m_n];
+		for(int i = 0; i < v.m_n; i++) {
+			m_p[i] = v.m_p[i];
+		}
+		return *this;
+	}
+	~vector() {
+		delete [] m_p;
+	}
+	void clear() {
+		delete [] m_p;
+		m_n = 0;
+		m_p = new (GC) T[0];
+	}
+	void push_back(const T& t) {
+		T* p = new (GC) T[m_n + 1];
+		for(int i = 0; i < m_n + 1; i++) {
+			if(i < m_n) {
+				p[i] = m_p[i];
+			} else {
+				p[i] = t;
+			}
+		}
+		delete [] m_p;
+		m_n++;
+		m_p = p;
+	}
+	void pop_back() {
+		assert(m_n);
+		T* p = new (GC) T[m_n - 1];
+		for(int i = 0; i < m_n - 1; i++) {
+			p[i] = m_p[i];
+		}
+		delete [] m_p;
+		m_n--;
+		m_p = p;
+	}
+	const T& back() const {
+		assert(m_n);
+		return m_p[m_n - 1];
+	}
+	int size() const {
+		return m_n;
+	}
+	int empty() const {
+		return m_n == 0;
+	}
+	const T& operator [](int i) const {
+		assert((unsigned)i < (unsigned)m_n);
+		return m_p[i];
+	}
+private:
+	int	m_n;
+	T*	m_p;
+};
 //-----------------------------------------------------------------------------
 #ifndef TRACE
 #define TRACE printf
@@ -113,6 +277,7 @@ string getJSString(const string& str);
 class CScriptException {
 public:
 	string text;
+	CScriptException(const char* exceptionText);
 	CScriptException(const string& exceptionText);
 };
 //-----------------------------------------------------------------------------
@@ -219,16 +384,16 @@ public:
 	bool isNative() { return (flags & TINYJS_SCRIPTVAR_NATIVE) != 0; }
 	bool isUndefined() { return (flags & TINYJS_SCRIPTVAR_VARTYPEMASK) == TINYJS_SCRIPTVAR_UNDEFINED; }
 	bool isNull() { return (flags & TINYJS_SCRIPTVAR_NULL) != 0; }
-	bool isBasic() { return firstChild == 0; }				//Is this *not* an array/object/etc.
+	bool isBasic() { return firstChild == 0; }					//Is this *not* an array/object/etc.
 
-	CScriptVar* mathsOp(CScriptVar* b, int op);				//Do a maths op with another script variable.
-	void copyValue(CScriptVar* val);					//Copy the value from the value given.
-	CScriptVar* deepCopy();							//Deep copy this node and return the result.
+	CScriptVar* mathsOp(CScriptVar* b, int op);					//Do a maths op with another script variable.
+	void copyValue(CScriptVar* val);						//Copy the value from the value given.
+	CScriptVar* deepCopy();								//Deep copy this node and return the result.
 
-	void trace(string indentStr = "", const string& name = "");		//Dump out the contents of this using trace.
-	string getFlagsAsString();						//For debugging - just dump a string version of the flags.
-	void getJSON(ostringstream& destination, const string linePrefix = "");	//Write out all the JS code needed to recreate this script variable to the stream (as JSON).
-	void setCallback(JSCallback callback, void* userdata);			//Set the callback for native functions.
+	void trace(string indentStr = "", const string& name = "");			//Dump out the contents of this using trace.
+	string getFlagsAsString();							//For debugging - just dump a string version of the flags.
+	void getJSON(std::ostringstream& destination, const string linePrefix = "");	//Write out all the JS code needed to recreate this script variable to the stream (as JSON).
+	void setCallback(JSCallback callback, void* userdata);				//Set the callback for native functions.
 
 	CScriptVarLink* firstChild;
 	CScriptVarLink* lastChild;
