@@ -83,7 +83,9 @@ int main(int argc, char** argv) {
 		printf("Done. %d tests, %d pass, %d fail\n", count, passed, count - passed);
 		return !(count == passed);
 	} else if(argc == 2) {
-		return !run_test(argv[1]);
+		int passed = run_test(argv[1]);
+		CHECK_LEAKS();
+		return !passed;
 	} else {
 		printf("TinyJS test runner\n");
 		printf("USAGE:\n");

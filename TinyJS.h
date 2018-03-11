@@ -74,6 +74,7 @@ public:
 	string substr(int i, int n = -1) const {
 		assert((unsigned)i <= strlen(m_p));
 		string t;
+		free(t.m_p);
 		if(n == -1) {
 			t.m_p = strdup(m_p + i);
 		} else {
