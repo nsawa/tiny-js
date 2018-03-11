@@ -54,9 +54,8 @@ static bool run_test(const char* filename) {
 		sprintf(path, "%s.fail.js", filename);
 		FILE* f = fopen(path, "wt");
 		if(f) {
-			std::ostringstream symbols;
-			tinyJS->root->getJSON(symbols);
-			fprintf(f, "%s", symbols.str().c_str());
+			string symbols = tinyJS->root->getJSON();
+			fprintf(f, "%s", symbols.c_str());
 			fclose(f);
 		}
 		printf("FAIL - symbols written to %s\n", path);

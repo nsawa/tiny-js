@@ -27,6 +27,7 @@
 #pragma warning(push)
 #pragma warning(disable:4595)
 #include "gc/gc_cpp.h"
+#include "gc/gc_allocator.h"
 #pragma warning(pop)
 #endif//__cplusplus
 #ifndef _WIN64
@@ -132,7 +133,7 @@ inline string operator +(const string& s, const char* p) {
 //-----------------------------------------------------------------------------
 template<class T> class vector : public gc_cleanup {
 public:
-	vector(int n = 0) {
+	explicit vector(int n = 0) {
 		m_n = n;
 		m_p = new (GC) T[n];
 	}
@@ -385,16 +386,16 @@ public:
 	bool isNative() { return (flags & TINYJS_SCRIPTVAR_NATIVE) != 0; }
 	bool isUndefined() { return (flags & TINYJS_SCRIPTVAR_VARTYPEMASK) == TINYJS_SCRIPTVAR_UNDEFINED; }
 	bool isNull() { return (flags & TINYJS_SCRIPTVAR_NULL) != 0; }
-	bool isBasic() { return firstChild == 0; }					//Is this *not* an array/object/etc.
+	bool isBasic() { return firstChild == 0; }			//Is this *not* an array/object/etc.
 
-	CScriptVar* mathsOp(CScriptVar* b, int op);					//Do a maths op with another script variable.
-	void copyValue(CScriptVar* val);						//Copy the value from the value given.
-	CScriptVar* deepCopy();								//Deep copy this node and return the result.
+	CScriptVar* mathsOp(CScriptVar* b, int op);			//Do a maths op with another script variable.
+	void copyValue(CScriptVar* val);				//Copy the value from the value given.
+	CScriptVar* deepCopy();						//Deep copy this node and return the result.
 
-	void trace(string indentStr = "", const string& name = "");			//Dump out the contents of this using trace.
-	string getFlagsAsString();							//For debugging - just dump a string version of the flags.
-	void getJSON(std::ostringstream& destination, const string linePrefix = "");	//Write out all the JS code needed to recreate this script variable to the stream (as JSON).
-	void setCallback(JSCallback callback, void* userdata);				//Set the callback for native functions.
+	void trace(string indentStr = "", const string& name = "");	//Dump out the contents of this using trace.
+	string getFlagsAsString();					//For debugging - just dump a string version of the flags.
+	string getJSON(const string linePrefix = "");			//Write out all the JS code needed to recreate this script variable to the stream (as JSON).
+	void setCallback(JSCallback callback, void* userdata);		//Set the callback for native functions.
 
 	CScriptVarLink* firstChild;
 	CScriptVarLink* lastChild;

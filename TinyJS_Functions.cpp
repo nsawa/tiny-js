@@ -114,9 +114,8 @@ static void scIntegerValueOf(CScriptVar* var, void* userdata) {
 	var->getReturnVar()->setInt(val);
 }
 static void scJSONStringify(CScriptVar* var, void* userdata) {
-	std::ostringstream result;
-	var->getParameter("obj")->getJSON(result);
-	var->getReturnVar()->setString(result.str().c_str());
+	string result = var->getParameter("obj")->getJSON();
+	var->getReturnVar()->setString(result);
 }
 static void scExec(CScriptVar* var, void* userdata) {
 	CTinyJS* tinyJS = (CTinyJS*)userdata;
@@ -172,15 +171,15 @@ static void scArrayRemove(CScriptVar* var, void* userdata) {
 static void scArrayJoin(CScriptVar* var, void* userdata) {
 	string sep = var->getParameter("separator")->getString();
 	CScriptVar* arr = var->getParameter("this");
-	std::ostringstream sstr;
+	string sstr;
 	int l = arr->getArrayLength();
 	for(int i=0;i<l;i++) {
 		if(i>0) {
-			sstr << sep.c_str();
+			sstr += sep;
 		}
-		sstr << arr->getArrayIndex(i)->getString().c_str();
+		sstr += arr->getArrayIndex(i)->getString();
 	}
-	var->getReturnVar()->setString(sstr.str().c_str());
+	var->getReturnVar()->setString(sstr);
 }
 //-----------------------------------------------------------------------------
 //Register Functions

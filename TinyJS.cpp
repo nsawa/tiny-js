@@ -107,9 +107,14 @@ void CScriptLex::reset() {
 }
 void CScriptLex::match(int expected_tk) {
 	if(tk!=expected_tk) {
-		std::ostringstream errorString;
-		errorString << "Got " << getTokenStr(tk).c_str() << " expected " << getTokenStr(expected_tk).c_str() << " at " << getPosition(tokenStart).c_str();
-		throw new CScriptException(errorString.str().c_str());
+		string errorString;
+		errorString += "Got ";
+		errorString += getTokenStr(tk);
+		errorString += " expected ";
+		errorString += getTokenStr(expected_tk);
+		errorString += " at ";
+		errorString += getPosition(tokenStart);
+		throw new CScriptException(errorString);
 	}
 	getNextToken();
 }
@@ -120,51 +125,53 @@ string CScriptLex::getTokenStr(int token) {
 		return buf;
 	}
 	switch(token) {
-		case TINYJS_LEX_EOF : return "EOF";
-		case TINYJS_LEX_ID : return "ID";
-		case TINYJS_LEX_L_INT : return "INT";
-		case TINYJS_LEX_L_FLOAT : return "FLOAT";
-		case TINYJS_LEX_L_STR : return "STRING";
-		case TINYJS_LEX_O_EQUAL : return "==";
-		case TINYJS_LEX_O_TYPEEQUAL : return "===";
-		case TINYJS_LEX_O_NEQUAL : return "!=";
-		case TINYJS_LEX_O_NTYPEEQUAL : return "!==";
-		case TINYJS_LEX_O_LEQUAL : return "<=";
-		case TINYJS_LEX_O_LSHIFT : return "<<";
-		case TINYJS_LEX_O_LSHIFTEQUAL : return "<<=";
-		case TINYJS_LEX_O_GEQUAL : return ">=";
-		case TINYJS_LEX_O_RSHIFT : return ">>";
-		case TINYJS_LEX_O_RSHIFTUNSIGNED : return ">>";
-		case TINYJS_LEX_O_RSHIFTEQUAL : return ">>=";
-		case TINYJS_LEX_O_PLUSEQUAL : return "+=";
-		case TINYJS_LEX_O_MINUSEQUAL : return "-=";
-		case TINYJS_LEX_O_PLUSPLUS : return "++";
-		case TINYJS_LEX_O_MINUSMINUS : return "--";
-		case TINYJS_LEX_O_ANDEQUAL : return "&=";
-		case TINYJS_LEX_O_ANDAND : return "&&";
-		case TINYJS_LEX_O_OREQUAL : return "|=";
-		case TINYJS_LEX_O_OROR : return "||";
-		case TINYJS_LEX_O_XOREQUAL : return "^=";
-		//reserved words
-		case TINYJS_LEX_R_IF : return "if";
-		case TINYJS_LEX_R_ELSE : return "else";
-		case TINYJS_LEX_R_DO : return "do";
-		case TINYJS_LEX_R_WHILE : return "while";
-		case TINYJS_LEX_R_FOR : return "for";
-		case TINYJS_LEX_R_BREAK : return "break";
-		case TINYJS_LEX_R_CONTINUE : return "continue";
-		case TINYJS_LEX_R_FUNCTION : return "function";
-		case TINYJS_LEX_R_RETURN : return "return";
-		case TINYJS_LEX_R_VAR : return "var";
-		case TINYJS_LEX_R_TRUE : return "true";
-		case TINYJS_LEX_R_FALSE : return "false";
-		case TINYJS_LEX_R_NULL : return "null";
-		case TINYJS_LEX_R_UNDEFINED : return "undefined";
-		case TINYJS_LEX_R_NEW : return "new";
+	case TINYJS_LEX_EOF : return "EOF";
+	case TINYJS_LEX_ID : return "ID";
+	case TINYJS_LEX_L_INT : return "INT";
+	case TINYJS_LEX_L_FLOAT : return "FLOAT";
+	case TINYJS_LEX_L_STR : return "STRING";
+	case TINYJS_LEX_O_EQUAL : return "==";
+	case TINYJS_LEX_O_TYPEEQUAL : return "===";
+	case TINYJS_LEX_O_NEQUAL : return "!=";
+	case TINYJS_LEX_O_NTYPEEQUAL : return "!==";
+	case TINYJS_LEX_O_LEQUAL : return "<=";
+	case TINYJS_LEX_O_LSHIFT : return "<<";
+	case TINYJS_LEX_O_LSHIFTEQUAL : return "<<=";
+	case TINYJS_LEX_O_GEQUAL : return ">=";
+	case TINYJS_LEX_O_RSHIFT : return ">>";
+	case TINYJS_LEX_O_RSHIFTUNSIGNED : return ">>";
+	case TINYJS_LEX_O_RSHIFTEQUAL : return ">>=";
+	case TINYJS_LEX_O_PLUSEQUAL : return "+=";
+	case TINYJS_LEX_O_MINUSEQUAL : return "-=";
+	case TINYJS_LEX_O_PLUSPLUS : return "++";
+	case TINYJS_LEX_O_MINUSMINUS : return "--";
+	case TINYJS_LEX_O_ANDEQUAL : return "&=";
+	case TINYJS_LEX_O_ANDAND : return "&&";
+	case TINYJS_LEX_O_OREQUAL : return "|=";
+	case TINYJS_LEX_O_OROR : return "||";
+	case TINYJS_LEX_O_XOREQUAL : return "^=";
+	//reserved words
+	case TINYJS_LEX_R_IF : return "if";
+	case TINYJS_LEX_R_ELSE : return "else";
+	case TINYJS_LEX_R_DO : return "do";
+	case TINYJS_LEX_R_WHILE : return "while";
+	case TINYJS_LEX_R_FOR : return "for";
+	case TINYJS_LEX_R_BREAK : return "break";
+	case TINYJS_LEX_R_CONTINUE : return "continue";
+	case TINYJS_LEX_R_FUNCTION : return "function";
+	case TINYJS_LEX_R_RETURN : return "return";
+	case TINYJS_LEX_R_VAR : return "var";
+	case TINYJS_LEX_R_TRUE : return "true";
+	case TINYJS_LEX_R_FALSE : return "false";
+	case TINYJS_LEX_R_NULL : return "null";
+	case TINYJS_LEX_R_UNDEFINED : return "undefined";
+	case TINYJS_LEX_R_NEW : return "new";
 	}
-	std::ostringstream msg;
-	msg << "?[" << token << "]";
-	return string(msg.str().c_str());
+	string msg;
+	msg += "?[";
+	msg += token;
+	msg += "]";
+	return msg;
 }
 void CScriptLex::getNextCh() {
 	currCh = nextCh;
@@ -893,18 +900,19 @@ string CScriptVar::getParsableString() {
 		return getString();
 	}
 	if(isFunction()) {
-		std::ostringstream funcStr;
-		funcStr << "function (";
+		string funcStr;
+		funcStr += "function (";
 		//get list of parameters
 		CScriptVarLink* link = firstChild;
 		while(link) {
-			funcStr << link->name.c_str();
-			if(link->nextSibling) { funcStr << ","; }
+			funcStr += link->name.c_str();
+			if(link->nextSibling) { funcStr += ","; }
 			link = link->nextSibling;
 		}
 		//add function body
-		funcStr << ") " << getString().c_str();
-		return string(funcStr.str().c_str());
+		funcStr += ") ";
+		funcStr += getString();
+		return funcStr;
 	}
 	//if it is a string then we quote it
 	if(isString()) {
@@ -915,39 +923,46 @@ string CScriptVar::getParsableString() {
 	}
 	return "undefined";
 }
-void CScriptVar::getJSON(std::ostringstream& destination, const string linePrefix) {
+string CScriptVar::getJSON(const string linePrefix) {
+	string destination;
 	if(isObject()) {
-	string indentedLinePrefix = linePrefix+"  ";
+		string indentedLinePrefix = linePrefix+"  ";
 		//children - handle with bracketed list
-	destination << "{ \n";
-	CScriptVarLink* link = firstChild;
-	while(link) {
-		destination << indentedLinePrefix.c_str();
-		destination  << getJSString(link->name).c_str();
-		destination  << " : ";
-		link->var->getJSON(destination, indentedLinePrefix);
-		link = link->nextSibling;
-		if(link) {
-		destination  << ",\n";
+		destination += "{ \n";
+		CScriptVarLink* link = firstChild;
+		while(link) {
+			destination += indentedLinePrefix;
+			destination += getJSString(link->name);
+			destination += " : ";
+			destination += link->var->getJSON(indentedLinePrefix);
+			link = link->nextSibling;
+			if(link) {
+				destination += ",\n";
+			}
 		}
-	}
-	destination << "\n" << linePrefix.c_str() << "}";
+		destination += "\n";
+		destination += linePrefix;
+		destination += "}";
 	} else if(isArray()) {
-	string indentedLinePrefix = linePrefix+"  ";
-	destination << "[\n";
-	int len = getArrayLength();
-	if(len>10000) len=10000;	//we don't want to get stuck here!
+		string indentedLinePrefix = linePrefix+"  ";
+		destination += "[\n";
+		int len = getArrayLength();
+		if(len>10000) len=10000;	//we don't want to get stuck here!
 
-	for(int i=0;i<len;i++) {
-		getArrayIndex(i)->getJSON(destination, indentedLinePrefix);
-		if(i<len-1) destination	<< ",\n";
-	}
-
-	destination << "\n" << linePrefix.c_str() << "]";
+		for(int i=0;i<len;i++) {
+			destination += getArrayIndex(i)->getJSON(indentedLinePrefix);
+			if(i<len-1) {
+				destination += ",\n";
+			}
+		}
+		destination += "\n";
+		destination += linePrefix;
+		destination += "]";
 	} else {
 		//no children or a function... just write value directly
-	destination << getParsableString().c_str();
+		destination += getParsableString();
 	}
+	return destination;
 }
 void CScriptVar::setCallback(JSCallback callback, void* userdata) {
 	jsCallback = callback;
@@ -1001,19 +1016,25 @@ void CTinyJS::execute(const string& code) {
 	scopes.push_back(root);
 	try {
 		bool execute = true;
-		while(l->tk) statement(execute);
+		while(l->tk) { statement(execute); }
 	} catch(CScriptException* e) {
-		std::ostringstream msg;
-		msg << "Error " << e->text.c_str();
+		string msg;
+		msg += "Error ";
+		msg += e->text;
 #ifdef TINYJS_CALL_STACK
-		for(int i=(int)call_stack.size()-1;i>=0;i--)
-		msg << "\n" << i << ": " << call_stack[i].c_str();
+		for(int i=(int)call_stack.size()-1;i>=0;i--) {
+			char buf[256];
+			msg += "\n";
+			msg += itoa(i, buf, 10);
+			msg += ": ";
+			msg += call_stack[i];
+		}
 #endif//TINYJS_CALL_STACK
-		msg << " at " << l->getPosition().c_str();
+		msg += " at ";
+		msg += l->getPosition();
 		delete l;
 		l = oldLex;
-
-		throw new CScriptException(msg.str().c_str());
+		throw new CScriptException(msg);
 	}
 	delete l;
 	l = oldLex;
@@ -1038,18 +1059,22 @@ CScriptVarLink CTinyJS::evaluateComplex(const string& code) {
 		if(l->tk!=TINYJS_LEX_EOF) l->match(';');
 		} while(l->tk!=TINYJS_LEX_EOF);
 	} catch(CScriptException* e) {
-		std::ostringstream msg;
-		msg << "Error " << e->text.c_str();
+		string msg;
+		msg += "Error ";
+		msg += e->text;
 #ifdef TINYJS_CALL_STACK
-		for(int i=(int)call_stack.size()-1;i>=0;i--) {
-			msg << "\n" << i << ": " << call_stack[i].c_str();
+		for(int i = call_stack.size() - 1; i >= 0; i--) {
+			msg += "\n";
+			msg += i;
+			msg += ": ";
+			msg += call_stack[i];
 		}
 #endif//TINYJS_CALL_STACK
-		msg << " at " << l->getPosition().c_str();
+		msg += " at ";
+		msg += l->getPosition();
 		delete l;
 		l = oldLex;
-
-		throw new CScriptException(msg.str().c_str());
+		throw new CScriptException(msg);
 	}
 	delete l;
 	l = oldLex;
