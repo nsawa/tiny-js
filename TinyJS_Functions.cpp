@@ -38,7 +38,7 @@ static void scCharToInt(CScriptVar* var, void* userdata) {
 	string str = var->getParameter("ch")->getString();;
 	int val = 0;
 	if(str.length() > 0) {
-		val = str.c_str()[0];
+		val = str[0];
 	}
 	var->getReturnVar()->setInt(val);
 }
@@ -102,7 +102,7 @@ static void scStringFromCharCode(CScriptVar* var, void* userdata) {
 }
 static void scIntegerParseInt(CScriptVar* var, void* userdata) {
 	string str = var->getParameter("str")->getString();
-	int val = strtol(str.c_str(),0,0);
+	int val = strtol(str.c_str(), 0, 0);
 	var->getReturnVar()->setInt(val);
 }
 static void scIntegerValueOf(CScriptVar* var, void* userdata) {

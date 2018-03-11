@@ -479,11 +479,12 @@ CScriptVar::CScriptVar(const string& varData, int varFlags) {
 	init();
 	flags = varFlags;
 	if(varFlags & TINYJS_SCRIPTVAR_INTEGER) {
-	intData = strtol(varData.c_str(),0,0);
+		intData = strtol(varData.c_str(), 0, 0);
 	} else if(varFlags & TINYJS_SCRIPTVAR_DOUBLE) {
-	doubleData = strtod(varData.c_str(),0);
-	} else
-	data = varData;
+		doubleData = strtod(varData.c_str(), 0);
+	} else {
+		data = varData;
+	}
 }
 CScriptVar::CScriptVar(double val) {
 	refs = 0;
@@ -876,7 +877,7 @@ void CScriptVar::trace(string indentStr, const string& name) {
 		name.c_str(),
 		getString().c_str(),
 		getFlagsAsString().c_str());
-	string indent = indentStr+" ";
+	string indent = indentStr + " ";
 	CScriptVarLink* link = firstChild;
 	while(link) {
 		link->var->trace(indent, link->name);
@@ -905,7 +906,7 @@ string CScriptVar::getParsableString() {
 		//get list of parameters
 		CScriptVarLink* link = firstChild;
 		while(link) {
-			funcStr += link->name.c_str();
+			funcStr += link->name;
 			if(link->nextSibling) { funcStr += ","; }
 			link = link->nextSibling;
 		}
@@ -1152,7 +1153,7 @@ CScriptVarLink* CTinyJS::functionCall(bool& execute, CScriptVarLink* function, C
 		if(!function->var->isFunction()) {
 			string errorMsg = "Expecting '";
 			errorMsg = errorMsg + function->name + "' to be a function";
-			throw new CScriptException(errorMsg.c_str());
+			throw new CScriptException(errorMsg);
 		}
 		l->match('(');
 		//create a new symbol table entry for execution of this function
@@ -1831,16 +1832,17 @@ bool CTinyJS::setVariable(const string& path, const string& varData) {
 	CScriptVar* var = getScriptVariable(path);
 	//return result
 	if(var) {
-		if(var->isInt())
-			var->setInt((int)strtol(varData.c_str(),0,0));
-		else if(var->isDouble())
-			var->setDouble(strtod(varData.c_str(),0));
-		else
+		if(var->isInt()) {
+			var->setInt((int)strtol(varData.c_str(), 0, 0));
+		} else if(var->isDouble()) {
+			var->setDouble(strtod(varData.c_str(), 0));
+		} else {
 			var->setString(varData.c_str());
+		}
 		return true;
-	}
-	else
+	} else {
 		return false;
+	}
 }
 //Finds a child, looking recursively up the scopes
 CScriptVarLink* CTinyJS::findInScopes(const string& childName) {
