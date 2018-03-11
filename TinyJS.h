@@ -15,12 +15,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
+#include <math.h>
 #include <assert.h>
 #include <sys/stat.h>
-#include <math.h>
-#include <vector>
-#include <string>
-#include <sstream>
 //-----------------------------------------------------------------------------
 #include "gc/leak_detector.h"
 #ifdef  __cplusplus
