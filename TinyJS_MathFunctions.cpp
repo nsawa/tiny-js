@@ -37,7 +37,7 @@ using namespace std;
 #define scReturnDouble(a)	(var->getReturnVar()->setDouble(a))
 //-----------------------------------------------------------------------------
 //Math.abs(x) - Returns absolute of given value.
-static void scMathAbs(CScriptVar* var, void* userdata) {
+static void scMathAbs(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	if(scIsInt("a")) {
 		scReturnInt(F_ABS(scGetInt("a")));
 	} else if(scIsDouble("a")) {
@@ -45,7 +45,7 @@ static void scMathAbs(CScriptVar* var, void* userdata) {
 	}
 }
 //Math.round(a) - Returns nearest round of given value.
-static void scMathRound(CScriptVar* var, void* userdata) {
+static void scMathRound(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	if(scIsInt("a")) {
 		scReturnInt(F_ROUND(scGetInt("a")));
 	} else if(scIsDouble("a")) {
@@ -53,7 +53,7 @@ static void scMathRound(CScriptVar* var, void* userdata) {
 	}
 }
 //Math.min(a,b) - Returns minimum of two given values.
-static void scMathMin(CScriptVar* var, void* userdata) {
+static void scMathMin(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	if((scIsInt("a")) && (scIsInt("b"))) {
 		scReturnInt(F_MIN(scGetInt("a"), scGetInt("b")));
 	} else {
@@ -61,7 +61,7 @@ static void scMathMin(CScriptVar* var, void* userdata) {
 	}
 }
 //Math.max(a,b) - Returns maximum of two given values.
-static void scMathMax(CScriptVar* var, void* userdata) {
+static void scMathMax(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	if((scIsInt("a")) && (scIsInt("b"))) {
 		scReturnInt(F_MAX(scGetInt("a"), scGetInt("b")));
 	} else {
@@ -69,7 +69,7 @@ static void scMathMax(CScriptVar* var, void* userdata) {
 	}
 }
 //Math.range(x,a,b) - Returns value limited between two given values.
-static void scMathRange(CScriptVar* var, void* userdata) {
+static void scMathRange(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	if((scIsInt("x"))) {
 		scReturnInt(F_RNG(scGetInt("x"), scGetInt("a"), scGetInt("b")));
 	} else {
@@ -77,7 +77,7 @@ static void scMathRange(CScriptVar* var, void* userdata) {
 	}
 }
 //Math.sign(a) - Returns sign of given value (-1==negative,0=zero,1=positive).
-static void scMathSign(CScriptVar* var, void* userdata) {
+static void scMathSign(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	if(scIsInt("a")) {
 		scReturnInt(F_SGN(scGetInt("a")));
 	} else if(scIsDouble("a")) {
@@ -85,123 +85,123 @@ static void scMathSign(CScriptVar* var, void* userdata) {
 	}
 }
 //Math.PI() - Returns PI value.
-static void scMathPI(CScriptVar* var, void* userdata) {
+static void scMathPI(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	scReturnDouble(k_PI);
 }
 //Math.toDegrees(a) - Returns degree value of a given angle in radians.
-static void scMathToDegrees(CScriptVar* var, void* userdata) {
+static void scMathToDegrees(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	scReturnDouble((180.0/k_PI)*(scGetDouble("a")));
 }
 //Math.toRadians(a) - Returns radians value of a given angle in degrees.
-static void scMathToRadians(CScriptVar* var, void* userdata) {
+static void scMathToRadians(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	scReturnDouble((k_PI/180.0)*(scGetDouble("a")));
 }
 //Math.sin(a) - Returns trig. sine of given angle in radians.
-static void scMathSin(CScriptVar* var, void* userdata) {
+static void scMathSin(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	scReturnDouble(sin(scGetDouble("a")));
 }
 //Math.asin(a) - Returns trig. arcsine of given angle in radians.
-static void scMathASin(CScriptVar* var, void* userdata) {
+static void scMathASin(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	scReturnDouble(asin(scGetDouble("a")));
 }
 //Math.cos(a) - Returns trig. cosine of given angle in radians.
-static void scMathCos(CScriptVar* var, void* userdata) {
+static void scMathCos(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	scReturnDouble(cos(scGetDouble("a")));
 }
 //Math.acos(a) - Returns trig. arccosine of given angle in radians.
-static void scMathACos(CScriptVar* var, void* userdata) {
+static void scMathACos(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	scReturnDouble(acos(scGetDouble("a")));
 }
 //Math.tan(a) - Returns trig. tangent of given angle in radians.
-static void scMathTan(CScriptVar* var, void* userdata) {
+static void scMathTan(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	scReturnDouble(tan(scGetDouble("a")));
 }
 //Math.atan(a) - Returns trig. arctangent of given angle in radians.
-static void scMathATan(CScriptVar* var, void* userdata) {
+static void scMathATan(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	scReturnDouble(atan(scGetDouble("a")));
 }
 //Math.sinh(a) - Returns trig. hyperbolic sine of given angle in radians.
-static void scMathSinh(CScriptVar* var, void* userdata) {
+static void scMathSinh(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	scReturnDouble(sinh(scGetDouble("a")));
 }
 //Math.asinh(a) - Returns trig. hyperbolic arcsine of given angle in radians.
-static void scMathASinh(CScriptVar* var, void* userdata) {
+static void scMathASinh(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	scReturnDouble(asinh(scGetDouble("a")));
 }
 //Math.cosh(a) - Returns trig. hyperbolic cosine of given angle in radians.
-static void scMathCosh(CScriptVar* var, void* userdata) {
+static void scMathCosh(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	scReturnDouble(cosh(scGetDouble("a")));
 }
 //Math.acosh(a) - Returns trig. hyperbolic arccosine of given angle in radians.
-static void scMathACosh(CScriptVar* var, void* userdata) {
+static void scMathACosh(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	scReturnDouble(acosh(scGetDouble("a")));
 }
 //Math.tanh(a) - Returns trig. hyperbolic tangent of given angle in radians.
-static void scMathTanh(CScriptVar* var, void* userdata) {
+static void scMathTanh(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	scReturnDouble(tanh(scGetDouble("a")));
 }
 //Math.atan(a) - Returns trig. hyperbolic arctangent of given angle in radians.
-static void scMathATanh(CScriptVar* var, void* userdata) {
+static void scMathATanh(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	scReturnDouble(atan(scGetDouble("a")));
 }
 //Math.E() - Returns E Neplero value.
-static void scMathE(CScriptVar* var, void* userdata) {
+static void scMathE(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	scReturnDouble(k_E);
 }
 //Math.log(a) - Returns natural logaritm (base E) of given value.
-static void scMathLog(CScriptVar* var, void* userdata) {
+static void scMathLog(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	scReturnDouble(log(scGetDouble("a")));
 }
 //Math.log10(a) - Returns logaritm(base 10) of given value.
-static void scMathLog10(CScriptVar* var, void* userdata) {
+static void scMathLog10(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	scReturnDouble(log10(scGetDouble("a")));
 }
 //Math.exp(a) - Returns e raised to the power of a given number.
-static void scMathExp(CScriptVar* var, void* userdata) {
+static void scMathExp(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	scReturnDouble(exp(scGetDouble("a")));
 }
 //Math.pow(a,b) - Returns the result of a number raised to a power (a)^(b).
-static void scMathPow(CScriptVar* var, void* userdata) {
+static void scMathPow(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	scReturnDouble(pow(scGetDouble("a"), scGetDouble("b")));
 }
 //Math.sqr(a) - Returns square of given value.
-static void scMathSqr(CScriptVar* var, void* userdata) {
+static void scMathSqr(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	scReturnDouble((scGetDouble("a") * scGetDouble("a")));
 }
 //Math.sqrt(a) - Returns square root of given value.
-static void scMathSqrt(CScriptVar* var, void* userdata) {
+static void scMathSqrt(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	scReturnDouble(sqrt(scGetDouble("a")));
 }
 //-----------------------------------------------------------------------------
 //Register Functions.
 void registerMathFunctions(CTinyJS* tinyJS) {
 	//Math and Trigonometry functions.
-	tinyJS->addNative("function Math.abs(a)", scMathAbs, 0);
-	tinyJS->addNative("function Math.round(a)", scMathRound, 0);
-	tinyJS->addNative("function Math.min(a,b)", scMathMin, 0);
-	tinyJS->addNative("function Math.max(a,b)", scMathMax, 0);
-	tinyJS->addNative("function Math.range(x,a,b)", scMathRange, 0);
-	tinyJS->addNative("function Math.sign(a)", scMathSign, 0);
-	tinyJS->addNative("function Math.PI()", scMathPI, 0);
-	tinyJS->addNative("function Math.toDegrees(a)", scMathToDegrees, 0);
-	tinyJS->addNative("function Math.toRadians(a)", scMathToRadians, 0);
-	tinyJS->addNative("function Math.sin(a)", scMathSin, 0);
-	tinyJS->addNative("function Math.asin(a)", scMathASin, 0);
-	tinyJS->addNative("function Math.cos(a)", scMathCos, 0);
-	tinyJS->addNative("function Math.acos(a)", scMathACos, 0);
-	tinyJS->addNative("function Math.tan(a)", scMathTan, 0);
-	tinyJS->addNative("function Math.atan(a)", scMathATan, 0);
-	tinyJS->addNative("function Math.sinh(a)", scMathSinh, 0);
-	tinyJS->addNative("function Math.asinh(a)", scMathASinh, 0);
-	tinyJS->addNative("function Math.cosh(a)", scMathCosh, 0);
-	tinyJS->addNative("function Math.acosh(a)", scMathACosh, 0);
-	tinyJS->addNative("function Math.tanh(a)", scMathTanh, 0);
-	tinyJS->addNative("function Math.atanh(a)", scMathATanh, 0);
-	tinyJS->addNative("function Math.E()", scMathE, 0);
-	tinyJS->addNative("function Math.log(a)", scMathLog, 0);
-	tinyJS->addNative("function Math.log10(a)", scMathLog10, 0);
-	tinyJS->addNative("function Math.exp(a)", scMathExp, 0);
-	tinyJS->addNative("function Math.pow(a,b)", scMathPow, 0);
-	tinyJS->addNative("function Math.sqr(a)", scMathSqr, 0);
-	tinyJS->addNative("function Math.sqrt(a)", scMathSqrt, 0);
+	tinyJS->addNative("function Math.abs(a)",       scMathAbs,       NULL);
+	tinyJS->addNative("function Math.round(a)",     scMathRound,     NULL);
+	tinyJS->addNative("function Math.min(a,b)",     scMathMin,       NULL);
+	tinyJS->addNative("function Math.max(a,b)",     scMathMax,       NULL);
+	tinyJS->addNative("function Math.range(x,a,b)", scMathRange,     NULL);
+	tinyJS->addNative("function Math.sign(a)",      scMathSign,      NULL);
+	tinyJS->addNative("function Math.PI()",         scMathPI,        NULL);
+	tinyJS->addNative("function Math.toDegrees(a)", scMathToDegrees, NULL);
+	tinyJS->addNative("function Math.toRadians(a)", scMathToRadians, NULL);
+	tinyJS->addNative("function Math.sin(a)",       scMathSin,       NULL);
+	tinyJS->addNative("function Math.asin(a)",      scMathASin,      NULL);
+	tinyJS->addNative("function Math.cos(a)",       scMathCos,       NULL);
+	tinyJS->addNative("function Math.acos(a)",      scMathACos,      NULL);
+	tinyJS->addNative("function Math.tan(a)",       scMathTan,       NULL);
+	tinyJS->addNative("function Math.atan(a)",      scMathATan,      NULL);
+	tinyJS->addNative("function Math.sinh(a)",      scMathSinh,      NULL);
+	tinyJS->addNative("function Math.asinh(a)",     scMathASinh,     NULL);
+	tinyJS->addNative("function Math.cosh(a)",      scMathCosh,      NULL);
+	tinyJS->addNative("function Math.acosh(a)",     scMathACosh,     NULL);
+	tinyJS->addNative("function Math.tanh(a)",      scMathTanh,      NULL);
+	tinyJS->addNative("function Math.atanh(a)",     scMathATanh,     NULL);
+	tinyJS->addNative("function Math.E()",          scMathE,         NULL);
+	tinyJS->addNative("function Math.log(a)",       scMathLog,       NULL);
+	tinyJS->addNative("function Math.log10(a)",     scMathLog10,     NULL);
+	tinyJS->addNative("function Math.exp(a)",       scMathExp,       NULL);
+	tinyJS->addNative("function Math.pow(a,b)",     scMathPow,       NULL);
+	tinyJS->addNative("function Math.sqr(a)",       scMathSqr,       NULL);
+	tinyJS->addNative("function Math.sqrt(a)",      scMathSqrt,      NULL);
 }

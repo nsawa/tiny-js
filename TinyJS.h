@@ -12,6 +12,7 @@
 //
 #ifndef __TINYJS_H__
 #define __TINYJS_H__
+//=============================================================================
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,9 +34,8 @@
 #else //_WIN64
 #pragma comment(lib, "gc_x64.lib")
 #endif//_WIN64
-//-----------------------------------------------------------------------------
-//using namespace std;
-//-----------------------------------------------------------------------------
+//=============================================================================
+//std::string
 class string : public gc_cleanup {
 public:
 	string(const char* p = "") {
@@ -129,6 +129,7 @@ inline string operator +(const string& s, const char* p) {
 	return s + string(p);
 }
 //-----------------------------------------------------------------------------
+//std::vector<T>
 template<class T> class vector : public gc_cleanup {
 public:
 	explicit vector(int n = 0) {
@@ -200,7 +201,7 @@ private:
 	int	m_n;
 	T*	m_p;
 };
-//-----------------------------------------------------------------------------
+//=============================================================================
 #ifndef TRACE
 #define TRACE printf
 #endif//TRACE
@@ -270,16 +271,13 @@ private:
 #define TINYJS_PROTOTYPE_CLASS		"prototype"
 #define TINYJS_TEMP_NAME		""
 #define TINYJS_BLANK_DATA		""
-//-----------------------------------------------------------------------------
-//Convert the given string into a quoted string suitable for javascript.
-string getJSString(const char* str);
-//-----------------------------------------------------------------------------
+//=============================================================================
 class CScriptException {
 public:
 	CScriptException(const char* exceptionText);
 	string text;
 };
-//-----------------------------------------------------------------------------
+//=============================================================================
 class CScriptLex {
 public:
 	CScriptLex(const char* input);
@@ -313,17 +311,18 @@ protected:
 	void getNextCh();
 	void getNextToken();		//Get the text token from our text string
 };
-//-----------------------------------------------------------------------------
+//=============================================================================
+class CTinyJS;
 class CScriptVar;
-typedef void (*JSCallback)(CScriptVar* var, void* userdata);
-//-----------------------------------------------------------------------------
+typedef void (*JSCallback)(CTinyJS* tinyJS, CScriptVar* var, void* userData);
+//=============================================================================
 class CScriptVarLink {
 public:
-	string name;
-	CScriptVarLink* nextSibling;
-	CScriptVarLink* prevSibling;
-	CScriptVar* var;
-	bool owned;
+	string			name;
+	CScriptVarLink*		nextSibling;
+	CScriptVarLink*		prevSibling;
+	CScriptVar*		var;
+	bool			owned;
 
 	CScriptVarLink(CScriptVar* var, const char* name = TINYJS_TEMP_NAME);
 	CScriptVarLink(const CScriptVarLink& link);	//Copy constructor.
@@ -333,7 +332,7 @@ public:
 	int getIntName();				//Get the name as an integer (for arrays).
 	void setIntName(int n);				//Set the name as an integer (for arrays).
 };
-//-----------------------------------------------------------------------------
+//=============================================================================
 //Variable class (containing a doubly-linked list of children).
 class CScriptVar {
 public:
@@ -392,7 +391,7 @@ public:
 	void trace(const char* indentStr = "", const char* name = "");	//Dump out the contents of this using trace.
 	string getFlagsAsString();					//For debugging - just dump a string version of the flags.
 	string getJSON(const char* linePrefix = "");			//Write out all the JS code needed to recreate this script variable to the stream (as JSON).
-	void setCallback(JSCallback callback, void* userdata);		//Set the callback for native functions.
+	void setCallback(JSCallback callback, void* userData);		//Set the callback for native functions.
 
 	CScriptVarLink* firstChild;
 	CScriptVarLink* lastChild;
@@ -402,21 +401,21 @@ public:
 	void unref();				//Remove a reference, and delete this variable if required.
 	int getRefs();				//Get the number of references to this script variable.
 protected:
-	int refs;				//The number of references held to this - used for garbage collection.
+	int		refs;			//The number of references held to this - used for garbage collection.
 
-	string data;				//The contents of this variable if it is a string.
-	int intData;				//The contents of this variable if it is an int.
-	double doubleData;			//The contents of this variable if it is a double.
-	int flags;				//The flags determine the type of the variable - int/double/string/etc.
-	JSCallback jsCallback;			//Callback for native functions.
-	void* jsCallbackUserData;		//User data passed as second argument to native functions.
+	string		data;			//The contents of this variable if it is a string.
+	int		intData;		//The contents of this variable if it is an int.
+	double		doubleData;		//The contents of this variable if it is a double.
+	int		flags;			//The flags determine the type of the variable - int/double/string/etc.
+	JSCallback	jsCallback;		//Callback for native functions.
+	void*		jsCallbackUserData;	//User data passed as second argument to native functions.
 
 	void init();				//Initialisation of data members.
 	void copySimpleData(CScriptVar* val);	//Copy the basic data and flags from the variable given, with no children. Should be used internally only - by copyValue and deepCopy.
 
 	friend class CTinyJS;
 };
-//-----------------------------------------------------------------------------
+//=============================================================================
 class CTinyJS {
 public:
 	CTinyJS();
@@ -434,12 +433,12 @@ public:
 
 	//Add a native function to be called from TinyJS.
 	//example:
-	//│void scRandInt(CScriptVar* var, void* userdata) { ... }
+	//│void scRandInt(CScriptVar* var, void* userData) { ... }
 	//│tinyJS->addNative("function randInt(min, max)", scRandInt, 0);
 	//or
-	//│void scSubstring(CScriptVar* var, void* userdata) { ... }
+	//│void scSubstring(CScriptVar* var, void* userData) { ... }
 	//│tinyJS->addNative("function String.substring(lo, hi)", scSubstring, 0);
-	void addNative(const char* funcDesc, JSCallback ptr, void* userdata);
+	void addNative(const char* funcDesc, JSCallback ptr, void* userData);
 
 	//Get the given variable specified by a path (var1.var2.etc), or return 0.
 	CScriptVar* getScriptVariable(const char* path);
@@ -451,9 +450,9 @@ public:
 	bool setVariable(const char* path, const char* varData);
 
 	//Send all variables to stdout.
-	void trace();
+	void trace(const char* indentStr = "");
 
-	CScriptVar*		root;		//Root of symbol table.
+	CScriptVar*		root;		//Root of symbol table.		//※要検討:グローバルオブジェクトの事です。Webブラウザでの実装の場合「window」が、Node.jsの場合は「global」がグローバルオブジェクトとなります。rootという変数名はやめて、window,又は,globalに変える方が良いのでは？
 private:
 	CScriptLex*		l;		//Current lexer.
 	vector<CScriptVar*>	scopes;		//Stack of scopes when parsing.

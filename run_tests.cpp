@@ -10,48 +10,58 @@
 //	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
 //	IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-//-----------------------------------------------------------------------------
+//=============================================================================
 //
 //	This is a program to run all the tests in the tests folder...
 //
-//-----------------------------------------------------------------------------
+//=============================================================================
 #include "TinyJS.h"
 #include "TinyJS_Functions.h"
 #include "TinyJS_MathFunctions.h"
-//-----------------------------------------------------------------------------
-static bool run_test(const char* filename) {
-	printf("TEST %s ", filename);
+//=============================================================================
+static int run_test(const char* fileName) {
+	//スクリプトファイル名を表示する。
+	printf("TEST %s ", fileName);
+	//スクリプトファイルのサイズを取得する。
 	struct stat st;
-	if(stat(filename, &st)) {
-		printf("Cannot stat file! '%s'\n", filename);
-		return false;
+	if(stat(fileName, &st)) {
+		printf("Cannot stat file! '%s'\n", fileName);
+		return 0;	//失敗(0)
 	}
 	int size = st.st_size;
-	FILE* file = fopen(filename, "rb");	//If we open as text, the number of bytes read may be > the size we read.
-	if(!file) {
-		printf("Unable to open file! '%s'\n", filename);
-		return false;
+	//スクリプトファイルを読み込む。
+	FILE* fp = fopen(fileName, "rb");	//If we open as text, the number of bytes read may be > the size we read.
+	if(!fp) {
+		printf("Unable to open file! '%s'\n", fileName);
+		return 0;	//失敗(0)
 	}
 	char* buffer = new (GC) char[size + 1];
-	int actualRead = (int)fread(buffer, 1, size, file);
+	int actualRead = (int)fread(buffer, 1, size, fp);
 	buffer[actualRead] = 0;
-	fclose(file);
-
+	fclose(fp);
+	//インタプリタを作成する。
 	CTinyJS* tinyJS = new CTinyJS();
+	//関数を登録する。
 	registerFunctions(tinyJS);
 	registerMathFunctions(tinyJS);
+//不要	tinyJS->addNative("function print(str)", js_print, NULL);
+//不要	tinyJS->addNative("function dump()",     js_dump,  NULL);
+	//グローバルオブジェクトに、テスト結果の初期値(0:失敗)を登録する。
 	tinyJS->root->addChild("result", new CScriptVar("0", TINYJS_SCRIPTVAR_INTEGER));
+	//スクリプトを実行する。
 	try {
 		tinyJS->execute(buffer);
 	} catch(CScriptException* e) {
 		printf("ERROR: %s\n", e->text.c_str());
 	}
+	//テスト結果を取得する。
 	bool pass = tinyJS->root->getParameter("result")->getBool();
 	if(pass) {
 		printf("PASS\n");
 	} else {
+		//失敗ならば、ログファイルを生成する。
 		char path[64];
-		sprintf(path, "%s.fail.js", filename);
+		sprintf(path, "%s.fail.js", fileName);
 		FILE* f = fopen(path, "wt");
 		if(f) {
 			string symbols = tinyJS->root->getJSON();
@@ -60,36 +70,53 @@ static bool run_test(const char* filename) {
 		}
 		printf("FAIL - symbols written to %s\n", path);
 	}
+	//インタプリタを削除する。
 	delete tinyJS;
-
-	delete[] buffer;
+	//スクリプトファイルを読み込んだバッファを開放する。
+	delete [] buffer;
+	//テスト結果を返す。
 	return pass;
 }
+//-----------------------------------------------------------------------------
 int main(int argc, char** argv) {
+	//メモリリーク検出を開始する。
 	putenv("GC_LOG_FILE=CON");
 	GC_set_find_leak(1);
-	if(argc == 1) {
-		int test_num, count = 0, passed = 0;
+	//引数が指定されていなければ…
+	if(argc == (1 + 0)) {
+		//テスト番号1から、最大でも999まで…
+		int test_num, count = 0, passed = 0;	//test_num:テスト番号,count=テスト実行数,passed=テスト成功数
 		for(test_num = 1; test_num <= 999; test_num++) {
-			char path[32];
-			sprintf(path, "tests/test%03d.js", test_num);
+			//テスト番号に対応する、スクリプトファイル名を作成する。
+			char fileName[32];
+			sprintf(fileName, "tests/test%03d.js", test_num);
+			//スクリプトファイルが存在しなければ、テストを終了する。
 			struct stat st;
-			if(stat(path, &st)) { break; }	//Check if the file exists - if not, assume we're at the end of our tests.
-			count++;
-			if(run_test(path)) { passed++; }
+			if(stat(fileName, &st)) { break; }	//Check if the file exists - if not, assume we're at the end of our tests.
+			//テストを実行し、テスト成功ならばテスト成功数を増やす。
+			if(run_test(fileName)) { passed++; }
+			count++;	//テスト実行数を増やす。
+			//メモリリークを検出する。
 			CHECK_LEAKS();
 		}
+		//テスト実行数、テスト成功数、テスト失敗数を表示する。
 		printf("Done. %d tests, %d pass, %d fail\n", count, passed, count - passed);
-		return !(count == passed);
-	} else if(argc == 2) {
+		return !(count == passed);	//テスト失敗数が0ならば、正常終了(0)とする。
+	//引数が一個指定されていたら…
+	} else if(argc == (1 + 1)) {
+		//指定されたスクリプトを実行する。
 		int passed = run_test(argv[1]);
+		//メモリリークを検出する。
 		CHECK_LEAKS();
-		return !passed;
+		return !passed;	//テスト成功(1)ならば、正常終了(0)とする。
+	//引数が二個以上指定されていたら…
 	} else {
+		//使い方を表示する。
 		printf("TinyJS test runner\n");
 		printf("USAGE:\n");
 		printf("    ./run_tests            : run all tests\n");
 		printf("    ./run_tests test.js    : run just one test\n");
-		return 1;
+		return 1;	//異常終了(1)とする。
 	}
 }
+//-----------------------------------------------------------------------------

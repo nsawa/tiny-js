@@ -14,27 +14,26 @@
 #include "TinyJS_Functions.h"
 //-----------------------------------------------------------------------------
 //Actual Functions
-static void scTrace(CScriptVar* var, void* userdata) {
-	CTinyJS* tinyJS = (CTinyJS*)userdata;
-	tinyJS->root->trace();
+static void scTrace(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
+	tinyJS->trace();
 }
-static void scObjectDump(CScriptVar* var, void* userdata) {
+static void scObjectDump(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	var->getParameter("this")->trace("> ");
 }
-static void scObjectClone(CScriptVar* var, void* userdata) {
+static void scObjectClone(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	CScriptVar* obj = var->getParameter("this");
 	var->getReturnVar()->copyValue(obj);
 }
-static void scMathRand(CScriptVar* var, void* userdata) {
+static void scMathRand(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	var->getReturnVar()->setDouble((double)rand()/RAND_MAX);
 }
-static void scMathRandInt(CScriptVar* var, void* userdata) {
+static void scMathRandInt(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	int min = var->getParameter("min")->getInt();
 	int max = var->getParameter("max")->getInt();
 	int val = min + (int)(rand()%(1+max-min));
 	var->getReturnVar()->setInt(val);
 }
-static void scCharToInt(CScriptVar* var, void* userdata) {
+static void scCharToInt(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	string str = var->getParameter("ch")->getString();;
 	int val = 0;
 	if(str.length() > 0) {
@@ -42,14 +41,14 @@ static void scCharToInt(CScriptVar* var, void* userdata) {
 	}
 	var->getReturnVar()->setInt(val);
 }
-static void scStringIndexOf(CScriptVar* var, void* userdata) {
+static void scStringIndexOf(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	string str = var->getParameter("this")->getString();
 	string search = var->getParameter("search")->getString();
 	int p = str.find(search);
 	int val = (p == -1) ? -1 : p;	//¦–³‘Êˆ—!!!!!!!!!!!!
 	var->getReturnVar()->setInt(val);
 }
-static void scStringSubstring(CScriptVar* var, void* userdata) {
+static void scStringSubstring(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	string str = var->getParameter("this")->getString();
 	int lo = var->getParameter("lo")->getInt();
 	int hi = var->getParameter("hi")->getInt();
@@ -60,7 +59,7 @@ static void scStringSubstring(CScriptVar* var, void* userdata) {
 		var->getReturnVar()->setString("");
 	}
 }
-static void scStringCharAt(CScriptVar* var, void* userdata) {
+static void scStringCharAt(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	string str = var->getParameter("this")->getString();
 	int p = var->getParameter("pos")->getInt();
 	if(p>=0 && p<str.length()) {
@@ -69,7 +68,7 @@ static void scStringCharAt(CScriptVar* var, void* userdata) {
 		var->getReturnVar()->setString("");
 	}
 }
-static void scStringCharCodeAt(CScriptVar* var, void* userdata) {
+static void scStringCharCodeAt(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	string str = var->getParameter("this")->getString();
 	int p = var->getParameter("pos")->getInt();
 	if((p >= 0) && (p < str.length())) {
@@ -78,7 +77,7 @@ static void scStringCharCodeAt(CScriptVar* var, void* userdata) {
 		var->getReturnVar()->setInt(0);
 	}
 }
-static void scStringSplit(CScriptVar* var, void* userdata) {
+static void scStringSplit(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	string str = var->getParameter("this")->getString();
 	string sep = var->getParameter("separator")->getString();
 	CScriptVar* result = var->getReturnVar();
@@ -94,18 +93,18 @@ static void scStringSplit(CScriptVar* var, void* userdata) {
 		result->setArrayIndex(length++, new CScriptVar(str.c_str()));
 	}
 }
-static void scStringFromCharCode(CScriptVar* var, void* userdata) {
+static void scStringFromCharCode(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	char str[2];
 	str[0] = var->getParameter("char")->getInt();
 	str[1] = 0;
 	var->getReturnVar()->setString(str);
 }
-static void scIntegerParseInt(CScriptVar* var, void* userdata) {
+static void scIntegerParseInt(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	string str = var->getParameter("str")->getString();
 	int val = strtol(str.c_str(), 0, 0);
 	var->getReturnVar()->setInt(val);
 }
-static void scIntegerValueOf(CScriptVar* var, void* userdata) {
+static void scIntegerValueOf(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	string str = var->getParameter("str")->getString();
 	int val = 0;
 	if(str.length()==1) {
@@ -113,21 +112,19 @@ static void scIntegerValueOf(CScriptVar* var, void* userdata) {
 	}
 	var->getReturnVar()->setInt(val);
 }
-static void scJSONStringify(CScriptVar* var, void* userdata) {
+static void scJSONStringify(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	string result = var->getParameter("obj")->getJSON();
 	var->getReturnVar()->setString(result.c_str());
 }
-static void scExec(CScriptVar* var, void* userdata) {
-	CTinyJS* tinyJS = (CTinyJS*)userdata;
+static void scExec(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	string str = var->getParameter("jsCode")->getString();
 	tinyJS->execute(str.c_str());
 }
-static void scEval(CScriptVar* var, void* userdata) {
-	CTinyJS* tinyJS = (CTinyJS*)userdata;
+static void scEval(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	string str = var->getParameter("jsCode")->getString();
 	var->setReturnVar(tinyJS->evaluateComplex(str.c_str()).var);
 }
-static void scArrayContains(CScriptVar* var, void* userdata) {
+static void scArrayContains(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	CScriptVar* obj = var->getParameter("obj");
 	CScriptVarLink* v = var->getParameter("this")->firstChild;
 	bool contains = false;
@@ -140,7 +137,7 @@ static void scArrayContains(CScriptVar* var, void* userdata) {
 	}
 	var->getReturnVar()->setInt(contains);
 }
-static void scArrayRemove(CScriptVar* var, void* userdata) {
+static void scArrayRemove(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	CScriptVar* obj = var->getParameter("obj");
 	vector<int> removedIndices;
 	CScriptVarLink* v;
@@ -168,7 +165,7 @@ static void scArrayRemove(CScriptVar* var, void* userdata) {
 		v = v->nextSibling;
 	}
 }
-static void scArrayJoin(CScriptVar* var, void* userdata) {
+static void scArrayJoin(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	string sep = var->getParameter("separator")->getString();
 	CScriptVar* arr = var->getParameter("this");
 	string sstr;
@@ -184,25 +181,25 @@ static void scArrayJoin(CScriptVar* var, void* userdata) {
 //-----------------------------------------------------------------------------
 //Register Functions
 void registerFunctions(CTinyJS* tinyJS) {
-	tinyJS->addNative("function exec(jsCode)", scExec, tinyJS);				//Execute the given code.
-	tinyJS->addNative("function eval(jsCode)", scEval, tinyJS);				//Execute the given string (an expression) and return the result.
-	tinyJS->addNative("function trace()", scTrace, tinyJS);
-	tinyJS->addNative("function Object.dump()", scObjectDump, 0);
-	tinyJS->addNative("function Object.clone()", scObjectClone, 0);
-	tinyJS->addNative("function Math.rand()", scMathRand, 0);
-	tinyJS->addNative("function Math.randInt(min, max)", scMathRandInt, 0);
-	tinyJS->addNative("function charToInt(ch)", scCharToInt, 0);				//Convert a character to an int - get its value.
-	tinyJS->addNative("function String.indexOf(search)", scStringIndexOf, 0);		//Find the position of a string in a string, -1 if not.
-	tinyJS->addNative("function String.substring(lo,hi)", scStringSubstring, 0);
-	tinyJS->addNative("function String.charAt(pos)", scStringCharAt, 0);
-	tinyJS->addNative("function String.charCodeAt(pos)", scStringCharCodeAt, 0);
-	tinyJS->addNative("function String.fromCharCode(char)", scStringFromCharCode, 0);
-	tinyJS->addNative("function String.split(separator)", scStringSplit, 0);
-	tinyJS->addNative("function Integer.parseInt(str)", scIntegerParseInt, 0);		//String to int.
-	tinyJS->addNative("function Integer.valueOf(str)", scIntegerValueOf, 0);		//Value of a single character.
-	tinyJS->addNative("function JSON.stringify(obj, replacer)", scJSONStringify, 0);	//Convert to JSON. Replacer is ignored at the moment.
+	tinyJS->addNative("function exec(jsCode)",                 scExec,               NULL);	//Execute the given code.
+	tinyJS->addNative("function eval(jsCode)",                 scEval,               NULL);	//Execute the given string (an expression) and return the result.
+	tinyJS->addNative("function trace()",                      scTrace,              NULL);
+	tinyJS->addNative("function Object.dump()",                scObjectDump,         NULL);
+	tinyJS->addNative("function Object.clone()",               scObjectClone,        NULL);
+	tinyJS->addNative("function Math.rand()",                  scMathRand,           NULL);
+	tinyJS->addNative("function Math.randInt(min,max)",        scMathRandInt,        NULL);
+	tinyJS->addNative("function charToInt(ch)",                scCharToInt,          NULL);	//Convert a character to an int - get its value.
+	tinyJS->addNative("function String.indexOf(search)",       scStringIndexOf,      NULL);	//Find the position of a string in a string, -1 if not.
+	tinyJS->addNative("function String.substring(lo,hi)",      scStringSubstring,    NULL);
+	tinyJS->addNative("function String.charAt(pos)",           scStringCharAt,       NULL);
+	tinyJS->addNative("function String.charCodeAt(pos)",       scStringCharCodeAt,   NULL);
+	tinyJS->addNative("function String.fromCharCode(char)",    scStringFromCharCode, NULL);
+	tinyJS->addNative("function String.split(separator)",      scStringSplit,        NULL);
+	tinyJS->addNative("function Integer.parseInt(str)",        scIntegerParseInt,    NULL);	//String to int.
+	tinyJS->addNative("function Integer.valueOf(str)",         scIntegerValueOf,     NULL);	//Value of a single character.
+	tinyJS->addNative("function JSON.stringify(obj,replacer)", scJSONStringify,      NULL);	//Convert to JSON. Replacer is ignored at the moment.
 	//JSON.parse is left out as you can (unsafely!) use eval instead.
-	tinyJS->addNative("function Array.contains(obj)", scArrayContains, 0);
-	tinyJS->addNative("function Array.remove(obj)", scArrayRemove, 0);
-	tinyJS->addNative("function Array.join(separator)", scArrayJoin, 0);
+	tinyJS->addNative("function Array.contains(obj)",          scArrayContains,      NULL);
+	tinyJS->addNative("function Array.remove(obj)",            scArrayRemove,        NULL);
+	tinyJS->addNative("function Array.join(separator)",        scArrayJoin,          NULL);
 }

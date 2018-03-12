@@ -20,21 +20,14 @@
 //-----------------------------------------------------------------------------
 //Utils
 bool isNumber(const char* str) {
-	for(int i = 0; str[i]; i++) {
+	for(int i = 0; str[i] != '\0'; i++) {
 		if(!isdigit(str[i])) { return false; }
 	}
 	return true;
 }
-void replace(string& str, char textFrom, const char* textTo) {
-	int sLen = (int)strlen(textTo);
-	int p = str.find(textFrom);
-	while(p != -1) {
-		str = str.substr(0, p) + textTo + str.substr(p + 1);
-		p = str.find(textFrom, p + sLen);
-	}
-}
-//convert the given string into a quoted string suitable for javascript
-string getJSString(const char* str) {
+//-----------------------------------------------------------------------------
+//Convert the given string into a quoted string suitable for javascript.
+static string getJSString(const char* str) {
 	string nStr = str;
 	for(int i = 0; i < nStr.length(); i++) {
 		const char* replaceWith = "";
@@ -42,9 +35,9 @@ string getJSString(const char* str) {
 		char buffer[5];
 		switch(nStr[i]) {
 		case '\\': replaceWith = "\\\\"; break;
+		case '\t': replaceWith = "\\t";  break;
 		case '\n': replaceWith = "\\n";  break;
 		case '\r': replaceWith = "\\r";  break;
-		case '\a': replaceWith = "\\a";  break;
 		case '"':  replaceWith = "\\\""; break;
 		default:
 			{
@@ -73,17 +66,17 @@ CScriptException::CScriptException(const char* exceptionText) {
 //-----------------------------------------------------------------------------
 //CSCRIPTLEX
 CScriptLex::CScriptLex(const char* input) {
-	data = strdup(input);
+	data      = strdup(input);
 	dataOwned = true;
 	dataStart = 0;
-	dataEnd = (int)strlen(data);
+	dataEnd   = (int)strlen(data);
 	reset();
 }
 CScriptLex::CScriptLex(CScriptLex* owner, int startChar, int endChar) {
-	data = owner->data;
+	data      = owner->data;
 	dataOwned = false;
 	dataStart = startChar;
-	dataEnd = endChar;
+	dataEnd   = endChar;
 	reset();
 }
 CScriptLex::~CScriptLex() {
@@ -92,12 +85,12 @@ CScriptLex::~CScriptLex() {
 	}
 }
 void CScriptLex::reset() {
-	dataPos = dataStart;
-	tokenStart = 0;
-	tokenEnd = 0;
+	dataPos      = dataStart;
+	tokenStart   = 0;
+	tokenEnd     = 0;
 	tokenLastEnd = 0;
-	tk = 0;
-	tkStr = "";
+	tk           = 0;
+	tkStr        = "";
 	getNextCh();
 	getNextCh();
 	getNextToken();
@@ -172,132 +165,138 @@ string CScriptLex::getTokenStr(int token) {
 }
 void CScriptLex::getNextCh() {
 	currCh = nextCh;
-	if(dataPos < dataEnd)
+	if(dataPos < dataEnd) {
 		nextCh = data[dataPos];
-	else
-		nextCh = 0;
-	dataPos++;
+//×		dataPos++;
+	} else {
+		nextCh = '\0';
+	}
+/*○*/	dataPos++;
 }
 void CScriptLex::getNextToken() {
 	tk = TINYJS_LEX_EOF;
 	tkStr.clear();
-	while(currCh && isspace(currCh)) getNextCh();
-	//newline comments
-	if(currCh=='/' && nextCh=='/') {
-		while(currCh && currCh!='\n') getNextCh();
-		getNextCh();
+	while(currCh && isspace(currCh)) { getNextCh(); }
+	//Newline comments.
+	if((currCh == '/') && (nextCh == '/')) {
+		while(currCh && currCh != '\n') { getNextCh(); }
+		getNextCh();	//'\n'の次へ進める。
 		getNextToken();
-		return;
+		return;	//ここまで
 	}
-	//block comments
-	if(currCh=='/' && nextCh=='*') {
-		while(currCh && (currCh!='*' || nextCh!='/')) getNextCh();
-		getNextCh();
-		getNextCh();
+	//Block comments.
+	if((currCh == '/') && (nextCh == '*')) {
+		while(currCh && (currCh != '*' || nextCh != '/')) { getNextCh(); }
+		getNextCh();	//'*'の次へ進める。
+		getNextCh();	//'/'の次へ進める。
 		getNextToken();
-		return;
+		return;	//ここまで
 	}
-	//record beginning of this token
-	tokenStart = dataPos-2;
-	//tokens
-	if(iscsymf(currCh)) {	//IDs
+	//Record beginning of this token.
+	//
+	//	～■■□～
+	//	　↑↑↑
+	//	　││└dataPos =  0
+	//	　│└─nextCh  = -1
+	//	　└──currCh  = -2 = tokenStart
+	//
+	tokenStart = dataPos - 2;
+	//Tokens.
+	if(iscsymf(currCh)) {		//予約語,又は,ID
 		while(iscsym(currCh)) {
 			tkStr += currCh;
 			getNextCh();
 		}
-		tk = TINYJS_LEX_ID;
-			if(tkStr=="if") tk = TINYJS_LEX_R_IF;
-		else if(tkStr=="else") tk = TINYJS_LEX_R_ELSE;
-		else if(tkStr=="do") tk = TINYJS_LEX_R_DO;
-		else if(tkStr=="while") tk = TINYJS_LEX_R_WHILE;
-		else if(tkStr=="for") tk = TINYJS_LEX_R_FOR;
-		else if(tkStr=="break") tk = TINYJS_LEX_R_BREAK;
-		else if(tkStr=="continue") tk = TINYJS_LEX_R_CONTINUE;
-		else if(tkStr=="function") tk = TINYJS_LEX_R_FUNCTION;
-		else if(tkStr=="return") tk = TINYJS_LEX_R_RETURN;
-		else if(tkStr=="var") tk = TINYJS_LEX_R_VAR;
-		else if(tkStr=="true") tk = TINYJS_LEX_R_TRUE;
-		else if(tkStr=="false") tk = TINYJS_LEX_R_FALSE;
-		else if(tkStr=="null") tk = TINYJS_LEX_R_NULL;
-		else if(tkStr=="undefined") tk = TINYJS_LEX_R_UNDEFINED;
-		else if(tkStr=="new") tk = TINYJS_LEX_R_NEW;
-	} else if(isdigit(currCh)) {	//Numbers
+		     if(tkStr == "break")     { tk = TINYJS_LEX_R_BREAK; }
+		else if(tkStr == "continue")  { tk = TINYJS_LEX_R_CONTINUE; }
+		else if(tkStr == "do")        { tk = TINYJS_LEX_R_DO; }
+		else if(tkStr == "else")      { tk = TINYJS_LEX_R_ELSE; }
+		else if(tkStr == "false")     { tk = TINYJS_LEX_R_FALSE; }
+		else if(tkStr == "for")       { tk = TINYJS_LEX_R_FOR; }
+		else if(tkStr == "function")  { tk = TINYJS_LEX_R_FUNCTION; }
+		else if(tkStr == "if")        { tk = TINYJS_LEX_R_IF; }
+		else if(tkStr == "new")       { tk = TINYJS_LEX_R_NEW; }
+		else if(tkStr == "null")      { tk = TINYJS_LEX_R_NULL; }
+		else if(tkStr == "return")    { tk = TINYJS_LEX_R_RETURN; }
+		else if(tkStr == "true")      { tk = TINYJS_LEX_R_TRUE; }
+		else if(tkStr == "undefined") { tk = TINYJS_LEX_R_UNDEFINED; }
+		else if(tkStr == "var")       { tk = TINYJS_LEX_R_VAR; }
+		else if(tkStr == "while")     { tk = TINYJS_LEX_R_WHILE; }
+		else                          { tk = TINYJS_LEX_ID; }
+	} else if(isdigit(currCh)) {	//数値リテラル
 		bool isHex = false;
-		if(currCh=='0') { tkStr += currCh; getNextCh(); }
-		if(currCh=='x') {
-		isHex = true;
-		tkStr += currCh; getNextCh();
+		if(currCh == '0') {
+			tkStr += currCh;		//'0'を追加する。
+			getNextCh();			//'0'の次へ進める。
+			if(((currCh == 'x') || (currCh == 'X')) && isxdigit(nextCh)/*この条件忘れないで!!0xの後に少なくとも一文字の16進数が必要!!*/) {
+				isHex = true;
+				tkStr += currCh;	//'x',又は,'X'を追加する。
+				getNextCh();		//'x',又は,'X'の次へ進める。
+			}
 		}
 		tk = TINYJS_LEX_L_INT;
 		while(isdigit(currCh) || (isHex && isxdigit(currCh))) {
 			tkStr += currCh;
 			getNextCh();
 		}
-		if(!isHex && currCh=='.') {
+		if(!isHex && (currCh == '.')) {
 			tk = TINYJS_LEX_L_FLOAT;
-			tkStr += '.';
-			getNextCh();
+			tkStr += currCh;		//'.'を追加する。
+			getNextCh();			//'.'の次へ進める。
 			while(isdigit(currCh)) {
 				tkStr += currCh;
 				getNextCh();
 			}
 		}
-		//do fancy e-style floating point
-		if(!isHex && (currCh=='e'||currCh=='E')) {
-		tk = TINYJS_LEX_L_FLOAT;
-		tkStr += currCh; getNextCh();
-		if(currCh=='-') { tkStr += currCh; getNextCh(); }
-		while(isdigit(currCh)) {
-			tkStr += currCh; getNextCh();
-		}
-		}
-	} else if(currCh=='"') {
-		//strings...
-		getNextCh();
-		while(currCh && currCh!='"') {
-			if(currCh == '\\') {
-				getNextCh();
-				switch(currCh) {
-				case 'n' : tkStr += '\n'; break;
-				case '"' : tkStr += '"'; break;
-				case '\\' : tkStr += '\\'; break;
-				default: tkStr += currCh;
-				}
-			} else {
-				tkStr += currCh;
-			}
+		//Do fancy e-style floating point.
+		if(!isHex && ((currCh == 'e') || (currCh == 'E'))) {
+			tk = TINYJS_LEX_L_FLOAT;
+			tkStr += currCh;
 			getNextCh();
-		}
-		getNextCh();
-		tk = TINYJS_LEX_L_STR;
-	} else if(currCh=='\'') {
-		//strings again...
-		getNextCh();
-		while(currCh && currCh!='\'') {
-			if(currCh == '\\') {
+			if(currCh == '-') {
+				tkStr += currCh;	//'-'を追加する。
+				getNextCh();		//'-'の次へ進める。
+			}
+			while(isdigit(currCh)) {
+				tkStr += currCh;
 				getNextCh();
+			}
+		}
+	} else if((currCh == '"') || (currCh == '\'')) {	//文字列リテラル
+		const int quotCh = currCh;
+		tk = TINYJS_LEX_L_STR;
+		getNextCh();	//'"',又は,"'"の次へ進める。
+		while(currCh && (currCh != quotCh)) {
+			if(currCh == '\\') {
+				getNextCh();	//'\'の次へ進める。
 				switch(currCh) {
-				case 'n' : tkStr += '\n'; break;
-				case 'a' : tkStr += '\a'; break;
-				case 'r' : tkStr += '\r'; break;
-				case 't' : tkStr += '\t'; break;
-				case '\'' : tkStr += '\''; break;
-				case '\\' : tkStr += '\\'; break;
-				case 'x' : {	//hex digits
-							char buf[3] = "??";
-							getNextCh(); buf[0] = currCh;
-							getNextCh(); buf[1] = currCh;
-							tkStr += (char)strtol(buf,0,16);
-						} break;
-				default: if(currCh>='0' && currCh<='7') {
-							//octal digits
-						char buf[4] = "???";
-						buf[0] = currCh;
-						getNextCh(); buf[1] = currCh;
-						getNextCh(); buf[2] = currCh;
-						tkStr += (char)strtol(buf,0,8);
-						} else
+				case 't':  tkStr += '\t'; break;
+				case 'n':  tkStr += '\n'; break;
+				case 'r':  tkStr += '\r'; break;
+				case '\\': tkStr += '\\'; break;
+				default:
+					//Hex digits.
+					if(((currCh == 'x') || (currCh == 'X')) && isxdigit(nextCh)/*この条件忘れないで!!\xの後に少なくとも一文字の16進数が必要!!*/) {
+						string buf;
+						for(;;) {		//C言語の文字列リテラルの仕様では、"\x????～"には桁数制限が無い。JavaScriptでも同じなのかわからない。(※TODO:要確認)
+							getNextCh();	//初回は'x',又は,'X'の次へ進める。
+							if(!isxdigit(currCh)) { break; }
+							buf += currCh;
+						}
+						tkStr += (char)strtoul(buf.c_str(), NULL, 16);
+					//Octal digits.
+					} else if((currCh >= '0') && (currCh <= '7')) {
+						string buf;
+						while(buf.length() < 3) {	//C言語の文字列リテラルの仕様では、"\???"は1～3桁である。JavaScriptでも同じなのかわからない。(※TODO:要確認)
+							if(!isxdigit(currCh)) { break; }
+							buf += currCh;
+							getNextCh();
+						}
+						tkStr += (char)strtoul(buf.c_str(), NULL, 8);
+					} else {
 						tkStr += currCh;
+					}
+					break;
 				}
 			} else {
 				tkStr += currCh;
@@ -305,83 +304,90 @@ void CScriptLex::getNextToken() {
 			getNextCh();
 		}
 		getNextCh();
-		tk = TINYJS_LEX_L_STR;
 	} else {
-		//single chars
 		tk = currCh;
-		if(currCh) getNextCh();
-		if(tk=='=' && currCh=='=') {	//==
+		if(currCh) { getNextCh(); }
+		if((tk == '=') && (currCh == '=')) {		//"=="
 			tk = TINYJS_LEX_O_EQUAL;
 			getNextCh();
-			if(currCh=='=') {	//===
-			tk = TINYJS_LEX_O_TYPEEQUAL;
-			getNextCh();
+			if(currCh == '=') {			//"==="
+				tk = TINYJS_LEX_O_TYPEEQUAL;
+				getNextCh();
 			}
-		} else if(tk=='!' && currCh=='=') {	//!=
+		} else if((tk == '!') && (currCh == '=')) {	//"!="
 			tk = TINYJS_LEX_O_NEQUAL;
 			getNextCh();
-			if(currCh=='=') {	//!==
-			tk = TINYJS_LEX_O_NTYPEEQUAL;
-			getNextCh();
+			if(currCh == '=') {			//"!=="
+				tk = TINYJS_LEX_O_NTYPEEQUAL;
+				getNextCh();
 			}
-		} else if(tk=='<' && currCh=='=') {
+		} else if((tk == '<') && (currCh == '=')) {	//"<="
 			tk = TINYJS_LEX_O_LEQUAL;
 			getNextCh();
-		} else if(tk=='<' && currCh=='<') {
+		} else if((tk == '<') && (currCh == '<')) {	//"<<"
 			tk = TINYJS_LEX_O_LSHIFT;
 			getNextCh();
-			if(currCh=='=') {	//<<=
-			tk = TINYJS_LEX_O_LSHIFTEQUAL;
-			getNextCh();
+			if(currCh == '=') {			//"<<="
+				tk = TINYJS_LEX_O_LSHIFTEQUAL;
+				getNextCh();
 			}
-		} else if(tk=='>' && currCh=='=') {
+		} else if(tk == '>' && currCh == '=') {		//">="
 			tk = TINYJS_LEX_O_GEQUAL;
 			getNextCh();
-		} else if(tk=='>' && currCh=='>') {
+		} else if(tk == '>' && currCh == '>') {		//">>"
 			tk = TINYJS_LEX_O_RSHIFT;
 			getNextCh();
-			if(currCh=='=') {	//>>=
-			tk = TINYJS_LEX_O_RSHIFTEQUAL;
-			getNextCh();
-			} else if(currCh=='>') {	//>>>
-			tk = TINYJS_LEX_O_RSHIFTUNSIGNED;
-			getNextCh();
+			if(currCh == '=') {			//">>="
+				tk = TINYJS_LEX_O_RSHIFTEQUAL;
+				getNextCh();
+			} else if(currCh == '>') {		//">>>"
+				tk = TINYJS_LEX_O_RSHIFTUNSIGNED;
+				getNextCh();
 			}
-		}  else if(tk=='+' && currCh=='=') {
+		}  else if(tk == '+' && currCh == '=') {	//"+="
 			tk = TINYJS_LEX_O_PLUSEQUAL;
 			getNextCh();
-		}  else if(tk=='-' && currCh=='=') {
+		}  else if(tk == '-' && currCh == '=') {	//"-="
 			tk = TINYJS_LEX_O_MINUSEQUAL;
 			getNextCh();
-		}  else if(tk=='+' && currCh=='+') {
+		}  else if(tk == '+' && currCh == '+') {	//"++"
 			tk = TINYJS_LEX_O_PLUSPLUS;
 			getNextCh();
-		}  else if(tk=='-' && currCh=='-') {
+		}  else if(tk == '-' && currCh == '-') {	//"--"
 			tk = TINYJS_LEX_O_MINUSMINUS;
 			getNextCh();
-		} else if(tk=='&' && currCh=='=') {
+		} else if(tk == '&' && currCh == '=') {		//"&="
 			tk = TINYJS_LEX_O_ANDEQUAL;
 			getNextCh();
-		} else if(tk=='&' && currCh=='&') {
+		} else if(tk == '&' && currCh == '&') {		//"&&"
 			tk = TINYJS_LEX_O_ANDAND;
 			getNextCh();
-		} else if(tk=='|' && currCh=='=') {
+		} else if(tk == '|' && currCh == '=') {		//"|="
 			tk = TINYJS_LEX_O_OREQUAL;
 			getNextCh();
-		} else if(tk=='|' && currCh=='|') {
+		} else if(tk == '|' && currCh == '|') {		//"||"
 			tk = TINYJS_LEX_O_OROR;
 			getNextCh();
-		} else if(tk=='^' && currCh=='=') {
+		} else if(tk == '^' && currCh == '=') {		//"^="
 			tk = TINYJS_LEX_O_XOREQUAL;
 			getNextCh();
 		}
 	}
 	//This isn't quite right yet.
 	tokenLastEnd = tokenEnd;
-	tokenEnd = dataPos-3;
+	//Record ending of this token.
+	//
+	//	～■□□□～
+	//	　↑↑↑↑
+	//	　│││└dataPos  =  0
+	//	　││└─nextCh   = -1
+	//	　│└──currCh   = -2
+	//	　└───tokenEnd = -3
+	//
+	tokenEnd = dataPos - 3;
 }
 string CScriptLex::getSubString(int lastPosition) {
-	int lastCharIdx = tokenLastEnd+1;
+	int lastCharIdx = tokenLastEnd + 1;
 	if(lastCharIdx < dataEnd) {
 		//Save a memory alloc by using our data array to create the substring.
 		char old = data[lastCharIdx];
@@ -394,14 +400,15 @@ string CScriptLex::getSubString(int lastPosition) {
 	}
 }
 CScriptLex* CScriptLex::getSubLex(int lastPosition) {
-	int lastCharIdx = tokenLastEnd+1;
-	if(lastCharIdx < dataEnd)
+	int lastCharIdx = tokenLastEnd + 1;
+	if(lastCharIdx < dataEnd) {
 		return new CScriptLex(this, lastPosition, lastCharIdx);
-	else
-		return new CScriptLex(this, lastPosition, dataEnd );
+	} else {
+		return new CScriptLex(this, lastPosition, dataEnd);
+	}
 }
 string CScriptLex::getPosition(int pos) {
-	if(pos<0) pos=tokenLastEnd;
+	if(pos < 0) pos = tokenLastEnd;
 	int line = 1,col = 1;
 	for(int i=0;i<pos;i++) {
 		char ch;
@@ -501,7 +508,7 @@ void CScriptVar::init() {
 	lastChild = 0;
 	flags = 0;
 	jsCallback = 0;
-	jsCallbackUserData = 0;
+	jsCallbackUserData = NULL;
 	data = TINYJS_BLANK_DATA;
 	intData = 0;
 	doubleData = 0;
@@ -962,9 +969,9 @@ string CScriptVar::getJSON(const char* linePrefix) {
 	}
 	return destination;
 }
-void CScriptVar::setCallback(JSCallback callback, void* userdata) {
+void CScriptVar::setCallback(JSCallback callback, void* userData) {
 	jsCallback = callback;
-	jsCallbackUserData = userdata;
+	jsCallbackUserData = userData;
 }
 CScriptVar* CScriptVar::ref() {
 	refs++;
@@ -1000,8 +1007,8 @@ CTinyJS::~CTinyJS() {
 	objectClass->unref();
 	root->unref();
 }
-void CTinyJS::trace() {
-	root->trace();
+void CTinyJS::trace(const char* indentStr) {
+	root->trace(indentStr, "root");
 }
 void CTinyJS::execute(const char* code) {
 	CScriptLex* oldLex = l;
@@ -1098,7 +1105,7 @@ void CTinyJS::parseFunctionArguments(CScriptVar* funcVar) {
 	}
 	l->match(')');
 }
-void CTinyJS::addNative(const char* funcDesc, JSCallback ptr, void* userdata) {
+void CTinyJS::addNative(const char* funcDesc, JSCallback ptr, void* userData) {
 	CScriptLex* oldLex = l;
 	l = new CScriptLex(funcDesc);
 
@@ -1119,7 +1126,7 @@ void CTinyJS::addNative(const char* funcDesc, JSCallback ptr, void* userdata) {
 	}
 
 	CScriptVar* funcVar = new CScriptVar(TINYJS_BLANK_DATA, TINYJS_SCRIPTVAR_FUNCTION | TINYJS_SCRIPTVAR_NATIVE);
-	funcVar->setCallback(ptr, userdata);
+	funcVar->setCallback(ptr, userData);
 	parseFunctionArguments(funcVar);
 	delete l;
 	l = oldLex;
@@ -1187,7 +1194,7 @@ CScriptVarLink* CTinyJS::functionCall(bool& execute, CScriptVarLink* function, C
 #endif//TINYJS_CALL_STACK
 		if(function->var->isNative()) {
 			assert(function->var->jsCallback);
-			function->var->jsCallback(functionRoot, function->var->jsCallbackUserData);
+			(*function->var->jsCallback)(this, functionRoot, function->var->jsCallbackUserData);
 		} else {
 			//We just want to execute the block, but something could have messed up and left us with the wrong ScriptLex, so we want to be careful here...
 			CScriptException* exception = NULL;
@@ -1369,7 +1376,7 @@ CScriptVarLink* CTinyJS::factor(bool& execute) {
 	if(l->tk==TINYJS_LEX_R_FUNCTION) {
 	CScriptVarLink* funcVar = parseFunctionDefinition();
 		if(funcVar->name != TINYJS_TEMP_NAME)
-		TRACE("Functions not defined at statement-level are not meant to have a name");
+		TRACE("Functions not defined at statement-level are not meant to have a name.\n");
 		return funcVar;
 	}
 	if(l->tk==TINYJS_LEX_R_NEW) {
@@ -1379,7 +1386,7 @@ CScriptVarLink* CTinyJS::factor(bool& execute) {
 		if(execute) {
 			CScriptVarLink* objClassOrFunc = findInScopes(className.c_str());
 			if(!objClassOrFunc) {
-				TRACE("%s is not a valid class name", className.c_str());
+				TRACE("%s is not a valid class name.\n", className.c_str());
 				return new CScriptVarLink(new CScriptVar());
 			}
 			l->match(TINYJS_LEX_ID);
@@ -1580,7 +1587,7 @@ CScriptVarLink* CTinyJS::base(bool& execute) {
 				CLEAN(lhs);
 				lhs = realLhs;
 			} else {
-				TRACE("Trying to assign to an un-named type\n");
+				TRACE("Trying to assign to an un-named type.\n");
 			}
 		}
 		int op = l->tk;
@@ -1715,7 +1722,7 @@ void CTinyJS::statement(bool& execute) {
 		delete whileBody;
 		if(loopCount<=0) {
 			root->trace();
-			TRACE("WHILE Loop exceeded %d iterations at %s\n", TINYJS_LOOP_MAX_ITERATIONS, l->getPosition().c_str());
+			TRACE("WHILE Loop exceeded %d iterations at %s.\n", TINYJS_LOOP_MAX_ITERATIONS, l->getPosition().c_str());
 			throw new CScriptException("LOOP_ERROR");
 		}
 	} else if(l->tk==TINYJS_LEX_R_FOR) {
@@ -1767,7 +1774,7 @@ void CTinyJS::statement(bool& execute) {
 		delete forBody;
 		if(loopCount<=0) {
 			root->trace();
-			TRACE("FOR Loop exceeded %d iterations at %s\n", TINYJS_LOOP_MAX_ITERATIONS, l->getPosition().c_str());
+			TRACE("FOR Loop exceeded %d iterations at %s.\n", TINYJS_LOOP_MAX_ITERATIONS, l->getPosition().c_str());
 			throw new CScriptException("LOOP_ERROR");
 		}
 	} else if(l->tk==TINYJS_LEX_R_RETURN) {
@@ -1790,7 +1797,7 @@ void CTinyJS::statement(bool& execute) {
 		CScriptVarLink* funcVar = parseFunctionDefinition();
 		if(execute) {
 			if(funcVar->name == TINYJS_TEMP_NAME) {
-				TRACE("Functions defined at statement-level are meant to have a name\n");
+				TRACE("Functions defined at statement-level are meant to have a name.\n");
 			} else {
 				scopes.back()->addChildNoDup(funcVar->name.c_str(), funcVar->var);
 			}
