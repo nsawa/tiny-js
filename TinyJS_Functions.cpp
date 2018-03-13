@@ -101,7 +101,7 @@ static void scStringFromCharCode(CTinyJS* tinyJS, CScriptVar* var, void* userDat
 }
 static void scIntegerParseInt(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 	string str = var->getParameter("str")->getString();
-	int val = strtol(str.c_str(), 0, 0);
+	int val = strtol(str.c_str(), NULL, 0);
 	var->getReturnVar()->setInt(val);
 }
 static void scIntegerValueOf(CTinyJS* tinyJS, CScriptVar* var, void* userData) {

@@ -60,15 +60,15 @@ static int run_test(const char* fileName) {
 		printf("PASS\n");
 	} else {
 		//失敗ならば、ログファイルを生成する。
-		char path[64];
-		sprintf(path, "%s.fail.js", fileName);
-		FILE* f = fopen(path, "wt");
+		char buf[256];
+		snprintf(buf, sizeof buf, "%s.fail.js", fileName);
+		FILE* f = fopen(buf, "wt");
 		if(f) {
 			string symbols = tinyJS->root->getJSON();
 			fprintf(f, "%s", symbols.c_str());
 			fclose(f);
 		}
-		printf("FAIL - symbols written to %s\n", path);
+		printf("FAIL - symbols written to %s\n", buf);
 	}
 	//インタプリタを削除する。
 	delete tinyJS;
@@ -88,13 +88,13 @@ int main(int argc, char** argv) {
 		int test_num, count = 0, passed = 0;	//test_num:テスト番号,count=テスト実行数,passed=テスト成功数
 		for(test_num = 1; test_num <= 999; test_num++) {
 			//テスト番号に対応する、スクリプトファイル名を作成する。
-			char fileName[32];
-			sprintf(fileName, "tests/test%03d.js", test_num);
+			char buf[256];
+			snprintf(buf, sizeof buf, "tests/test%03d.js", test_num);
 			//スクリプトファイルが存在しなければ、テストを終了する。
 			struct stat st;
-			if(stat(fileName, &st)) { break; }	//Check if the file exists - if not, assume we're at the end of our tests.
+			if(stat(buf, &st)) { break; }	//Check if the file exists - if not, assume we're at the end of our tests.
 			//テストを実行し、テスト成功ならばテスト成功数を増やす。
-			if(run_test(fileName)) { passed++; }
+			if(run_test(buf)) { passed++; }
 			count++;	//テスト実行数を増やす。
 			//メモリリークを検出する。
 			CHECK_LEAKS();

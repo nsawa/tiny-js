@@ -12,7 +12,9 @@
 //
 #ifndef __TINYJS_H__
 #define __TINYJS_H__
-//=============================================================================
+//*****************************************************************************
+//	
+//*****************************************************************************
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,19 +36,24 @@
 #else //_WIN64
 #pragma comment(lib, "gc_x64.lib")
 #endif//_WIN64
-//=============================================================================
-//std::string
+//*****************************************************************************
+//	std::stringの代用
+//*****************************************************************************
 class string : public gc_cleanup {
 public:
 	string(const char* p = "") {
 		m_p = strdup(p);
 	}
+	string(const char* p, int n) {
+		m_p = strndup(p, n);
+	}
 	string(const string& s) {	//コピーコンストラクタ
 		m_p = strdup(s.m_p);
 	}
 	string& operator =(const string& s) {	//代入演算子
-		free(m_p);
-		m_p = strdup(s.m_p);
+		char* new_p = strdup(s.m_p);
+		free(m_p);	//エリアスセーフ
+		m_p = new_p;
 		return *this;
 	}
 	~string() {
@@ -73,7 +80,7 @@ public:
 	string substr(int i, int n = -1) const {
 		assert((unsigned)i <= strlen(m_p));
 		string t;
-		free(t.m_p);
+		free(t.m_p);	//忘れないで!!
 		if(n == -1) {
 			t.m_p = strdup(m_p + i);
 		} else {
@@ -128,8 +135,9 @@ inline string operator +(const char* p, const string& s) {
 inline string operator +(const string& s, const char* p) {
 	return s + string(p);
 }
-//-----------------------------------------------------------------------------
-//std::vector<T>
+//*****************************************************************************
+//	std::vector<T>の代用
+//*****************************************************************************
 template<class T> class vector : public gc_cleanup {
 public:
 	explicit vector(int n = 0) {
@@ -144,12 +152,13 @@ public:
 		}
 	}
 	vector& operator =(const vector<T>& v) {	//代入演算子
-		delete [] m_p;
-		m_n = v.m_n;
-		m_p = new (GC) T[v.m_n];
+		T* new_p = new (GC) T[v.m_n];
 		for(int i = 0; i < v.m_n; i++) {
-			m_p[i] = v.m_p[i];
+			new_p[i] = v.m_p[i];
 		}
+		delete [] m_p;	//エリアスセーフ
+		m_n = v.m_n;
+		m_p = new_p;
 		return *this;
 	}
 	~vector() {
@@ -161,27 +170,23 @@ public:
 		m_p = new (GC) T[0];
 	}
 	void push_back(const T& t) {
-		T* p = new (GC) T[m_n + 1];
+		T* new_p = new (GC) T[m_n + 1];
 		for(int i = 0; i < m_n + 1; i++) {
-			if(i < m_n) {
-				p[i] = m_p[i];
-			} else {
-				p[i] = t;
-			}
+			new_p[i] = (i < m_n) ? m_p[i] : t;
 		}
 		delete [] m_p;
 		m_n++;
-		m_p = p;
+		m_p = new_p;
 	}
 	void pop_back() {
 		assert(m_n);
-		T* p = new (GC) T[m_n - 1];
+		T* new_p = new (GC) T[m_n - 1];
 		for(int i = 0; i < m_n - 1; i++) {
-			p[i] = m_p[i];
+			new_p[i] = m_p[i];
 		}
 		delete [] m_p;
 		m_n--;
-		m_p = p;
+		m_p = new_p;
 	}
 	const T& back() const {
 		assert(m_n);
@@ -201,7 +206,9 @@ private:
 	int	m_n;
 	T*	m_p;
 };
-//=============================================================================
+//*****************************************************************************
+//	
+//*****************************************************************************
 #ifndef TRACE
 #define TRACE printf
 #endif//TRACE
@@ -271,101 +278,110 @@ private:
 #define TINYJS_PROTOTYPE_CLASS		"prototype"
 #define TINYJS_TEMP_NAME		""
 #define TINYJS_BLANK_DATA		""
-//=============================================================================
-class CScriptException {
+//-----------------------------------------------------------------------------
+class CTinyJS;
+class CScriptVar;
+typedef void (*JSCallback)(CTinyJS* tinyJS, CScriptVar* v, void* userData);
+//*****************************************************************************
+//	CScriptException
+//*****************************************************************************
+class CScriptException : public gc_cleanup {
 public:
 	CScriptException(const char* exceptionText);
 	string text;
 };
-//=============================================================================
-class CScriptLex {
+//*****************************************************************************
+//	CScriptLex
+//*****************************************************************************
+class CScriptLex : public gc_cleanup {
 public:
 	CScriptLex(const char* input);
 	CScriptLex(CScriptLex* owner, int startChar, int endChar);
 	~CScriptLex();
 
-	int	currCh, nextCh;
 	int	tk;		//The type of the token that we have.
+	string	tkStr;		//Data contained in the token we have here.
 	int	tokenStart;	//Position in the data at the beginning of the token we have here.
 	int	tokenEnd;	//Position in the data at the last character of the token we have here.
-	int	tokenLastEnd;	//Position in the data at the last character of the last token.
-	string	tkStr;		//Data contained in the token we have here.
 
+	void reset();					//Reset this lex so we can start again.
 	void match(int expected_tk);			//Lexical match wotsit.
 	static string getTokenStr(int token);		//Get the string representation of the given token.
-	void reset();					//Reset this lex so we can start again.
 
 	string getSubString(int pos);			//Return a sub-string from the given position up until right now.
 	CScriptLex* getSubLex(int lastPosition);	//Return a sub-lexer from the given position up until right now.
 
-	string getPosition(int pos = -1);		//Return a string representing the position in lines and columns of the character pos given.
+	string getLastPosition();			//Return a string representing the position in lines and columns of the tokenLastEnd.
+	string getPosition(int pos);			//Return a string representing the position in lines and columns of the character pos given.
 
-protected:
+private:
 	//When we go into a loop, we use getSubLex() to get a lexer for just the sub-part of the relevant string.
 	//This doesn't re-allocate and copy the string, but instead copies the data pointer and sets dataOwned to false, and dataStart/dataEnd to the relevant things.
 	char*	data;			//Data string to get tokens from.
-	int	dataStart, dataEnd;	//Start and end position in data string.
 	bool	dataOwned;		//Do we own this data string?
+	int	dataStart, dataEnd;	//Start and end position in data string.
 	int	dataPos;		//Position in data (we CAN go past the end of the string here)
+	int	currCh, nextCh;
+	int	tokenLastEnd;		//Position in the data at the last character of the last token.
 
 	void getNextCh();
-	void getNextToken();		//Get the text token from our text string
+	void getNextToken();		//Get the text token from our text string.
 };
-//=============================================================================
-class CTinyJS;
-class CScriptVar;
-typedef void (*JSCallback)(CTinyJS* tinyJS, CScriptVar* var, void* userData);
-//=============================================================================
-class CScriptVarLink {
+//*****************************************************************************
+//	CScriptVarLink
+//*****************************************************************************
+class CScriptVarLink : public gc_cleanup {
 public:
+	CScriptVarLink(CScriptVar* v, const char* name = TINYJS_TEMP_NAME);
+	CScriptVarLink(const CScriptVarLink& link);	//Copy constructor.
+	~CScriptVarLink();
+
 	string			name;
 	CScriptVarLink*		nextSibling;
 	CScriptVarLink*		prevSibling;
 	CScriptVar*		var;
 	bool			owned;
 
-	CScriptVarLink(CScriptVar* var, const char* name = TINYJS_TEMP_NAME);
-	CScriptVarLink(const CScriptVarLink& link);	//Copy constructor.
-	~CScriptVarLink();
-	void replaceWith(CScriptVar* newVar);		//Replace the Variable pointed to.
-	void replaceWith(CScriptVarLink* newVar);	//Replace the Variable pointed to (just dereferences).
-	int getIntName();				//Get the name as an integer (for arrays).
-	void setIntName(int n);				//Set the name as an integer (for arrays).
+	void replaceWith(CScriptVar* v);	//Replace the Variable pointed to.
+	void replaceWith(CScriptVarLink* l);	//Replace the Variable pointed to (just dereferences).
+	int getIntName();			//Get the name as an integer (for arrays).
+	void setIntName(int n);			//Set the name as an integer (for arrays).
 };
-//=============================================================================
+//*****************************************************************************
+//	CScriptVar
+//*****************************************************************************
 //Variable class (containing a doubly-linked list of children).
-class CScriptVar {
+class CScriptVar : public gc_cleanup {
 public:
 	CScriptVar();					//Create undefined.
 	CScriptVar(const char* varData, int varFlags);	//User defined.
 	CScriptVar(const char* str);			//Create a string.
-	CScriptVar(double varData);
 	CScriptVar(int val);
-	~CScriptVar();
+	CScriptVar(double val);
 
-	CScriptVar* getReturnVar();				//If this is a function, get the result value (for use by native functions).
-	void setReturnVar(CScriptVar* var);			//Set the result value. Use this when setting complex return data as it avoids a deepCopy().
-	CScriptVar* getParameter(const char* name);		//If this is a function, get the parameter with the given name (for use by native functions).
+	CScriptVar* getReturnVar();			//If this is a function, get the result value (for use by native functions).
+	void setReturnVar(CScriptVar* v);		//Set the result value. Use this when setting complex return data as it avoids a deepCopy().
+	CScriptVar* getParameter(const char* name);	//If this is a function, get the parameter with the given name (for use by native functions).
 
-	CScriptVarLink* findChild(const char* childName);							//Tries to find a child with the given name, may return 0.
-	CScriptVarLink* findChildOrCreate(const char* childName, int varFlags = TINYJS_SCRIPTVAR_UNDEFINED);	//Tries to find a child with the given name, or will create it with the given flags.
-	CScriptVarLink* findChildOrCreateByPath(const char* path);						//Tries to find a child with the given path (separated by dots).
-	CScriptVarLink* addChild(const char* childName, CScriptVar* child = NULL);
-	CScriptVarLink* addChildNoDup(const char* childName, CScriptVar* child = NULL);	//add a child overwriting any with the same name.
-	void removeChild(CScriptVar* child);
-	void removeLink(CScriptVarLink* link);			//Remove a specific link (this is faster than finding via a child).
+	CScriptVarLink* findChild(const char* childName);						//Tries to find a child with the given name, may return NULL.
+	CScriptVarLink* findChildOrCreate(const char* name, int varFlags = TINYJS_SCRIPTVAR_UNDEFINED);	//Tries to find a child with the given name, or will create it with the given flags.
+	CScriptVarLink* findChildOrCreateByPath(const char* path);					//Tries to find a child with the given path (separated by dots).
+	CScriptVarLink* addChild(const char* name, CScriptVar* v = NULL);
+	CScriptVarLink* addChildNoDup(const char* name, CScriptVar* v = NULL);				//Add a child overwriting any with the same name.
+	void removeChild(CScriptVar* v);
+	void removeLink(CScriptVarLink* link);		//Remove a specific link (this is faster than finding via a child).
 	void removeAllChildren();
-	CScriptVar* getArrayIndex(int idx);			//The the value at an array index.
-	void setArrayIndex(int idx, CScriptVar* value);		//Set the value at an array index.
-	int getArrayLength();					//If this is an array, return the number of items in it (else 0).
-	int getChildren();					//Get the number of children.
+	CScriptVar* getArrayIndex(int i);		//The the value at an array index.
+	void setArrayIndex(int i, CScriptVar* v);	//Set the value at an array index.
+	int getArrayLength();				//If this is an array, return the number of items in it (else 0).
+	int getChildCount();				//Get the number of children.
 
+	bool getBool();
 	int getInt();
-	bool getBool() { return getInt() != 0; }
 	double getDouble();
 	string getString();
-	string getParsableString();				//Get data as a parsable javascript string.
-	void setInt(int num);
+	string getParsableString();			//Get data as a parsable javascript string.
+	void setInt(int val);
 	void setDouble(double val);
 	void setString(const char* str);
 	void setUndefined();
@@ -382,41 +398,45 @@ public:
 	bool isNative() { return (flags & TINYJS_SCRIPTVAR_NATIVE) != 0; }
 	bool isUndefined() { return (flags & TINYJS_SCRIPTVAR_VARTYPEMASK) == TINYJS_SCRIPTVAR_UNDEFINED; }
 	bool isNull() { return (flags & TINYJS_SCRIPTVAR_NULL) != 0; }
-	bool isBasic() { return firstChild == 0; }			//Is this *not* an array/object/etc.
+	bool isBasic() { return firstChild == NULL; }			//Is this *not* an array/object/etc.
 
-	CScriptVar* mathsOp(CScriptVar* b, int op);			//Do a maths op with another script variable.
-	void copyValue(CScriptVar* val);				//Copy the value from the value given.
+	CScriptVar* mathsOp(CScriptVar* v, int op);			//Do a maths op with another script variable.
+	void copyValue(CScriptVar* v);					//Copy the value from the value given.
 	CScriptVar* deepCopy();						//Deep copy this node and return the result.
 
-	void trace(const char* indentStr = "", const char* name = "");	//Dump out the contents of this using trace.
+	void trace(const char* indent = "", const char* name = "");	//Dump out the contents of this using trace.
 	string getFlagsAsString();					//For debugging - just dump a string version of the flags.
 	string getJSON(const char* linePrefix = "");			//Write out all the JS code needed to recreate this script variable to the stream (as JSON).
 	void setCallback(JSCallback callback, void* userData);		//Set the callback for native functions.
 
-	CScriptVarLink* firstChild;
-	CScriptVarLink* lastChild;
+	CScriptVarLink*	firstChild;
+	CScriptVarLink*	lastChild;
 
 	//For memory management/garbage collection.
 	CScriptVar* ref();			//Add reference to this variable.
 	void unref();				//Remove a reference, and delete this variable if required.
 	int getRefs();				//Get the number of references to this script variable.
-protected:
+private:
 	int		refs;			//The number of references held to this - used for garbage collection.
 
-	string		data;			//The contents of this variable if it is a string.
-	int		intData;		//The contents of this variable if it is an int.
-	double		doubleData;		//The contents of this variable if it is a double.
 	int		flags;			//The flags determine the type of the variable - int/double/string/etc.
+	double		doubleData;		//The contents of this variable if it is a double.
+	int		intData;		//The contents of this variable if it is an int.
+	string		data;			//The contents of this variable if it is a string.
 	JSCallback	jsCallback;		//Callback for native functions.
 	void*		jsCallbackUserData;	//User data passed as second argument to native functions.
 
+	~CScriptVar();				//明示的に削除出来ないように、デストラクタをprivateにした。unref()によってのみ削除出来る。
+
 	void init();				//Initialisation of data members.
-	void copySimpleData(CScriptVar* val);	//Copy the basic data and flags from the variable given, with no children. Should be used internally only - by copyValue and deepCopy.
+	void copySimpleData(CScriptVar* v);	//Copy the basic data and flags from the variable given, with no children. Should be used internally only - by copyValue and deepCopy.
 
 	friend class CTinyJS;
 };
-//=============================================================================
-class CTinyJS {
+//*****************************************************************************
+//	CTinyJS
+//*****************************************************************************
+class CTinyJS : public gc_cleanup {
 public:
 	CTinyJS();
 	~CTinyJS();
@@ -433,28 +453,28 @@ public:
 
 	//Add a native function to be called from TinyJS.
 	//example:
-	//│void scRandInt(CScriptVar* var, void* userData) { ... }
-	//│tinyJS->addNative("function randInt(min, max)", scRandInt, 0);
+	//│void scRandInt(CScriptVar* v, void* userData) { ... }
+	//│tinyJS->addNative("function randInt(min, max)", scRandInt, NULL);
 	//or
-	//│void scSubstring(CScriptVar* var, void* userData) { ... }
-	//│tinyJS->addNative("function String.substring(lo, hi)", scSubstring, 0);
+	//│void scSubstring(CScriptVar* v, void* userData) { ... }
+	//│tinyJS->addNative("function String.substring(lo, hi)", scSubstring, NULL);
 	void addNative(const char* funcDesc, JSCallback ptr, void* userData);
 
-	//Get the given variable specified by a path (var1.var2.etc), or return 0.
+	//Get the given variable specified by a path (var1.var2.etc), or return NULL.
 	CScriptVar* getScriptVariable(const char* path);
 //{{削除。この関数がNULLを返せるようにするために他の関数に色々無理が生じている。この関数を廃止して明示的にgetScriptVariable()を使うようにすれば自然になる。だいたい当関数はアプリケーション用に用意されたもののようで、ライブラリ内の実装においては使用されていなかった。
-//	//Get the value of the given variable, or return 0.
+//	//Get the value of the given variable, or return NULL.
 //	const string* getVariable(const char* path);
 //}}削除。この関数がNULLを返せるようにするために他の関数に色々無理が生じている。この関数を廃止して明示的にgetScriptVariable()を使うようにすれば自然になる。だいたい当関数はアプリケーション用に用意されたもののようで、ライブラリ内の実装においては使用されていなかった。
 	//Set the value of the given variable, return trur if it exists and gets set.
 	bool setVariable(const char* path, const char* varData);
 
 	//Send all variables to stdout.
-	void trace(const char* indentStr = "");
+	void trace(const char* indent = "");
 
 	CScriptVar*		root;		//Root of symbol table.		//※要検討:グローバルオブジェクトの事です。Webブラウザでの実装の場合「window」が、Node.jsの場合は「global」がグローバルオブジェクトとなります。rootという変数名はやめて、window,又は,globalに変える方が良いのでは？
 private:
-	CScriptLex*		l;		//Current lexer.
+	CScriptLex*		lex;		//Current lexer.
 	vector<CScriptVar*>	scopes;		//Stack of scopes when parsing.
 #ifdef  TINYJS_CALL_STACK
 	vector<string>		call_stack;	//Names of places called so we can show when erroring.
@@ -481,7 +501,7 @@ private:
 	CScriptVarLink* parseFunctionDefinition();
 	void parseFunctionArguments(CScriptVar* funcVar);
 
-	CScriptVarLink* findInScopes(const char* childName);				//Finds a child, looking recursively up the scopes.
-	CScriptVarLink* findInParentClasses(CScriptVar* object, const char* name);	//Look up in any parent classes of the given object.
+	CScriptVarLink* findInScopes(const char* name);				//Finds a child, looking recursively up the scopes.
+	CScriptVarLink* findInParentClasses(CScriptVar* obj, const char* name);	//Look up in any parent classes of the given object.
 };
 #endif//__TINYJS_H__
