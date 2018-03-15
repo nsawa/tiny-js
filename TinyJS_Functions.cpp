@@ -14,73 +14,73 @@
 #include "TinyJS_Functions.h"
 //-----------------------------------------------------------------------------
 //Actual Functions
-static void scTrace(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
+static void scTrace(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
 	tinyJS->trace();
 }
-static void scObjectDump(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
-	var->getParameter("this")->trace("> ");
+static void scObjectDump(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
+	v->getParameter("this")->trace("> ");
 }
-static void scObjectClone(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
-	CScriptVar* obj = var->getParameter("this");
-	var->getReturnVar()->copyValue(obj);
+static void scObjectClone(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
+	CScriptVar* obj = v->getParameter("this");
+	v->getReturnVar()->copyValue(obj);
 }
-static void scMathRand(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
-	var->getReturnVar()->setDouble((double)rand()/RAND_MAX);
+static void scMathRand(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
+	v->getReturnVar()->setDouble((double)rand()/RAND_MAX);
 }
-static void scMathRandInt(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
-	int min = var->getParameter("min")->getInt();
-	int max = var->getParameter("max")->getInt();
+static void scMathRandInt(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
+	int min = v->getParameter("min")->getInt();
+	int max = v->getParameter("max")->getInt();
 	int val = min + (int)(rand()%(1+max-min));
-	var->getReturnVar()->setInt(val);
+	v->getReturnVar()->setInt(val);
 }
-static void scCharToInt(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
-	string str = var->getParameter("ch")->getString();;
+static void scCharToInt(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
+	string str = v->getParameter("ch")->getString();;
 	int val = 0;
 	if(str.length() > 0) {
 		val = str[0];
 	}
-	var->getReturnVar()->setInt(val);
+	v->getReturnVar()->setInt(val);
 }
-static void scStringIndexOf(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
-	string str = var->getParameter("this")->getString();
-	string search = var->getParameter("search")->getString();
+static void scStringIndexOf(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
+	string str = v->getParameter("this")->getString();
+	string search = v->getParameter("search")->getString();
 	int p = str.find(search);
 	int val = (p == -1) ? -1 : p;	//¦–³‘Êˆ—!!!!!!!!!!!!
-	var->getReturnVar()->setInt(val);
+	v->getReturnVar()->setInt(val);
 }
-static void scStringSubstring(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
-	string str = var->getParameter("this")->getString();
-	int lo = var->getParameter("lo")->getInt();
-	int hi = var->getParameter("hi")->getInt();
+static void scStringSubstring(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
+	string str = v->getParameter("this")->getString();
+	int lo = v->getParameter("lo")->getInt();
+	int hi = v->getParameter("hi")->getInt();
 	int l = hi-lo;
 	if(l>0 && lo>=0 && lo+l<=str.length()) {
-		var->getReturnVar()->setString(str.substr(lo, l).c_str());
+		v->getReturnVar()->setString(str.substr(lo, l).c_str());
 	} else {
-		var->getReturnVar()->setString("");
+		v->getReturnVar()->setString("");
 	}
 }
-static void scStringCharAt(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
-	string str = var->getParameter("this")->getString();
-	int p = var->getParameter("pos")->getInt();
+static void scStringCharAt(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
+	string str = v->getParameter("this")->getString();
+	int p = v->getParameter("pos")->getInt();
 	if(p>=0 && p<str.length()) {
-		var->getReturnVar()->setString(str.substr(p, 1).c_str());
+		v->getReturnVar()->setString(str.substr(p, 1).c_str());
 	} else {
-		var->getReturnVar()->setString("");
+		v->getReturnVar()->setString("");
 	}
 }
-static void scStringCharCodeAt(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
-	string str = var->getParameter("this")->getString();
-	int p = var->getParameter("pos")->getInt();
+static void scStringCharCodeAt(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
+	string str = v->getParameter("this")->getString();
+	int p = v->getParameter("pos")->getInt();
 	if((p >= 0) && (p < str.length())) {
-		var->getReturnVar()->setInt(str[p]);
+		v->getReturnVar()->setInt(str[p]);
 	} else {
-		var->getReturnVar()->setInt(0);
+		v->getReturnVar()->setInt(0);
 	}
 }
-static void scStringSplit(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
-	string str = var->getParameter("this")->getString();
-	string sep = var->getParameter("separator")->getString();
-	CScriptVar* result = var->getReturnVar();
+static void scStringSplit(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
+	string str = v->getParameter("this")->getString();
+	string sep = v->getParameter("separator")->getString();
+	CScriptVar* result = v->getReturnVar();
 	result->setArray();
 	int length = 0;
 	int pos = str.find(sep);
@@ -93,66 +93,69 @@ static void scStringSplit(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 		result->setArrayIndex(length++, new CScriptVar(str.c_str()));
 	}
 }
-static void scStringFromCharCode(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
+static void scStringFromCharCode(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
 	char str[2];
-	str[0] = var->getParameter("char")->getInt();
+	str[0] = v->getParameter("char")->getInt();
 	str[1] = 0;
-	var->getReturnVar()->setString(str);
+	v->getReturnVar()->setString(str);
 }
-static void scIntegerParseInt(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
-	string str = var->getParameter("str")->getString();
+static void scIntegerParseInt(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
+	string str = v->getParameter("str")->getString();
 	int val = strtol(str.c_str(), NULL, 0);
-	var->getReturnVar()->setInt(val);
+	v->getReturnVar()->setInt(val);
 }
-static void scIntegerValueOf(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
-	string str = var->getParameter("str")->getString();
+static void scIntegerValueOf(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
+	string str = v->getParameter("str")->getString();
 	int val = 0;
 	if(str.length()==1) {
 		val = str[0];
 	}
-	var->getReturnVar()->setInt(val);
+	v->getReturnVar()->setInt(val);
 }
-static void scJSONStringify(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
-	string result = var->getParameter("obj")->getJSON();
-	var->getReturnVar()->setString(result.c_str());
+static void scJSONStringify(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
+	string result = v->getParameter("obj")->getJSON();
+	v->getReturnVar()->setString(result.c_str());
 }
-static void scExec(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
-	string str = var->getParameter("jsCode")->getString();
+static void scExec(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
+	string str = v->getParameter("jsCode")->getString();
 	tinyJS->execute(str.c_str());
 }
-static void scEval(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
-	string str = var->getParameter("jsCode")->getString();
-	var->setReturnVar(tinyJS->evaluateComplex(str.c_str()).var);
+static void scEval(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
+	string str = v->getParameter("jsCode")->getString();
+	v->setReturnVar(tinyJS->evaluateComplex(str.c_str()).var);
 }
-static void scArrayContains(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
-	CScriptVar* obj = var->getParameter("obj");
-	CScriptVarLink* v = var->getParameter("this")->firstChild;
+static void scArrayContains(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
+	CScriptVar* obj = v->getParameter("obj");
+	GSList* list = v->getParameter("this")->firstChild;
 	bool contains = false;
-	while(v) {
-		if(v->var->equals(obj)) {
+	while(list) {
+		CScriptVarLink* l = (CScriptVarLink*)list->data;
+		if(l->var->equals(obj)) {
 			contains = true;
 			break;
 		}
-		v = v->nextSibling;
+		list = list->next;
 	}
-	var->getReturnVar()->setInt(contains);
+	v->getReturnVar()->setInt(contains);
 }
-static void scArrayRemove(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
-	CScriptVar* obj = var->getParameter("obj");
+static void scArrayRemove(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
+	CScriptVar* obj = v->getParameter("obj");
 	vector<int> removedIndices;
-	CScriptVarLink* v;
+	GSList* list;
 	//remove
-	v = var->getParameter("this")->firstChild;
-	while(v) {
-		if(v->var->equals(obj)) {
-			removedIndices.push_back(v->getIntName());
+	list = v->getParameter("this")->firstChild;
+	while(list) {
+		CScriptVarLink* l = (CScriptVarLink*)list->data;
+		if(l->var->equals(obj)) {
+			removedIndices.push_back(l->getIntName());
 		}
-		v = v->nextSibling;
+		list = list->next;
 	}
 	//renumber
-	v = var->getParameter("this")->firstChild;
-	while(v) {
-		int n = v->getIntName();
+	list = v->getParameter("this")->firstChild;
+	while(list) {
+		CScriptVarLink* l = (CScriptVarLink*)list->data;
+		int n = l->getIntName();
 		int newn = n;
 		for(int i = 0; i < removedIndices.size(); i++) {
 			if(n >= removedIndices[i]) {
@@ -160,14 +163,14 @@ static void scArrayRemove(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 			}
 		}
 		if(newn != n) {
-			v->setIntName(newn);
+			l->setIntName(newn);
 		}
-		v = v->nextSibling;
+		list = list->next;
 	}
 }
-static void scArrayJoin(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
-	string sep = var->getParameter("separator")->getString();
-	CScriptVar* arr = var->getParameter("this");
+static void scArrayJoin(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
+	string sep = v->getParameter("separator")->getString();
+	CScriptVar* arr = v->getParameter("this");
 	string sstr;
 	int l = arr->getArrayLength();
 	for(int i=0;i<l;i++) {
@@ -176,7 +179,7 @@ static void scArrayJoin(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
 		}
 		sstr += arr->getArrayIndex(i)->getString();
 	}
-	var->getReturnVar()->setString(sstr.c_str());
+	v->getReturnVar()->setString(sstr.c_str());
 }
 //-----------------------------------------------------------------------------
 //Register Functions

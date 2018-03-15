@@ -27,12 +27,12 @@
 //static const char code[] = "function myfunc(x,y) { return x+y; } var a=myfunc(1,2); print(a);";
 //-----------------------------------------------------------------------------
 //function print(str: string): void
-static void js_print(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
-	printf("> %s\n", var->getParameter("str")->getString().c_str());
+static void js_print(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
+	printf("> %s\n", v->getParameter("str")->getString().c_str());
 }
 //-----------------------------------------------------------------------------
 //function dump(): void
-static void js_dump(CTinyJS* tinyJS, CScriptVar* var, void* userData) {
+static void js_dump(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
 	tinyJS->trace();
 }
 //-----------------------------------------------------------------------------

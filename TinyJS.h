@@ -15,27 +15,7 @@
 //*****************************************************************************
 //	
 //*****************************************************************************
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include <math.h>
-#include <assert.h>
-#include <sys/stat.h>
-//-----------------------------------------------------------------------------
-#include "gc/leak_detector.h"
-#ifdef  __cplusplus
-#pragma warning(push)
-#pragma warning(disable:4595)
-#include "gc/gc_cpp.h"
-#include "gc/gc_allocator.h"
-#pragma warning(pop)
-#endif//__cplusplus
-#ifndef _WIN64
-#pragma comment(lib, "gc.lib")
-#else //_WIN64
-#pragma comment(lib, "gc_x64.lib")
-#endif//_WIN64
+#include "clip/clip.h"
 //*****************************************************************************
 //	std::stringの代用
 //*****************************************************************************
@@ -281,7 +261,7 @@ private:
 //-----------------------------------------------------------------------------
 class CTinyJS;
 class CScriptVar;
-typedef void (*JSCallback)(CTinyJS* tinyJS, CScriptVar* v, void* userData);
+typedef void TinyJS_Callback(CTinyJS* tinyJS, CScriptVar* v, void* userdata);
 //*****************************************************************************
 //	CScriptException
 //*****************************************************************************
@@ -337,8 +317,6 @@ public:
 	~CScriptVarLink();
 
 	string			name;
-	CScriptVarLink*		nextSibling;
-	CScriptVarLink*		prevSibling;
 	CScriptVar*		var;
 	bool			owned;
 
@@ -407,24 +385,25 @@ public:
 	void trace(const char* indent = "", const char* name = "");	//Dump out the contents of this using trace.
 	string getFlagsAsString();					//For debugging - just dump a string version of the flags.
 	string getJSON(const char* linePrefix = "");			//Write out all the JS code needed to recreate this script variable to the stream (as JSON).
-	void setCallback(JSCallback callback, void* userData);		//Set the callback for native functions.
+	void setCallback(TinyJS_Callback* callback, void* userdata);	//Set the callback for native functions.
 
-	CScriptVarLink*	firstChild;
-	CScriptVarLink*	lastChild;
+	GSList*			firstChild;
 
 	//For memory management/garbage collection.
 	CScriptVar* ref();			//Add reference to this variable.
 	void unref();				//Remove a reference, and delete this variable if required.
-	int getRefs();				//Get the number of references to this script variable.
+//{{削除:明らかに不要なので削除。外部から参照カウントが見られるのは害にしかならない。
+//	int getRefs();				//Get the number of references to this script variable.
+//}}削除:明らかに不要なので削除。外部から参照カウントが見られるのは害にしかならない。
 private:
-	int		refs;			//The number of references held to this - used for garbage collection.
+	int			refs;		//The number of references held to this - used for garbage collection.
 
-	int		flags;			//The flags determine the type of the variable - int/double/string/etc.
-	double		doubleData;		//The contents of this variable if it is a double.
-	int		intData;		//The contents of this variable if it is an int.
-	string		data;			//The contents of this variable if it is a string.
-	JSCallback	jsCallback;		//Callback for native functions.
-	void*		jsCallbackUserData;	//User data passed as second argument to native functions.
+	int			flags;		//The flags determine the type of the variable - int/double/string/etc.
+	double			doubleData;	//The contents of this variable if it is a double.
+	int			intData;	//The contents of this variable if it is an int.
+	string			data;		//The contents of this variable if it is a string.
+	TinyJS_Callback*	callback;	//Callback for native functions.
+	void*			userdata;	//User data passed as second argument to native functions.
 
 	~CScriptVar();				//明示的に削除出来ないように、デストラクタをprivateにした。unref()によってのみ削除出来る。
 
@@ -453,12 +432,12 @@ public:
 
 	//Add a native function to be called from TinyJS.
 	//example:
-	//│void scRandInt(CScriptVar* v, void* userData) { ... }
+	//│void scRandInt(CScriptVar* v, void* userdata) { ... }
 	//│tinyJS->addNative("function randInt(min, max)", scRandInt, NULL);
 	//or
-	//│void scSubstring(CScriptVar* v, void* userData) { ... }
+	//│void scSubstring(CScriptVar* v, void* userdata) { ... }
 	//│tinyJS->addNative("function String.substring(lo, hi)", scSubstring, NULL);
-	void addNative(const char* funcDesc, JSCallback ptr, void* userData);
+	void addNative(const char* funcDesc, TinyJS_Callback* callback, void* userdata);
 
 	//Get the given variable specified by a path (var1.var2.etc), or return NULL.
 	CScriptVar* getScriptVariable(const char* path);
@@ -485,18 +464,18 @@ private:
 	CScriptVar*		arrayClass;	//Built in array class.
 
 	//Parsing - in order of precedence.
-	CScriptVarLink* functionCall(bool& execute, CScriptVarLink* function, CScriptVar* parent);
-	CScriptVarLink* factor(bool& execute);
-	CScriptVarLink* unary(bool& execute);
-	CScriptVarLink* term(bool& execute);
-	CScriptVarLink* expression(bool& execute);
-	CScriptVarLink* shift(bool& execute);
-	CScriptVarLink* condition(bool& execute);
-	CScriptVarLink* logic(bool& execute);
-	CScriptVarLink* ternary(bool& execute);
-	CScriptVarLink* base(bool& execute);
-	void block(bool& execute);
-	void statement(bool& execute);
+	CScriptVarLink* functionCall(bool* pExec, CScriptVarLink* function, CScriptVar* parent);
+	CScriptVarLink* factor(bool* pExec);
+	CScriptVarLink* unary(bool* pExec);
+	CScriptVarLink* term(bool* pExec);
+	CScriptVarLink* expression(bool* pExec);
+	CScriptVarLink* shift(bool* pExec);
+	CScriptVarLink* condition(bool* pExec);
+	CScriptVarLink* logic(bool* pExec);
+	CScriptVarLink* ternary(bool* pExec);
+	CScriptVarLink* base(bool* pExec);
+	void block(bool* pExec);
+	void statement(bool* pExec);
 	//Parsing utility functions.
 	CScriptVarLink* parseFunctionDefinition();
 	void parseFunctionArguments(CScriptVar* funcVar);

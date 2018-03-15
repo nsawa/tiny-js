@@ -123,11 +123,34 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\clip\clipdlst.c" />
+    <ClCompile Include="..\clip\cliphash.c" />
+    <ClCompile Include="..\clip\clipsort.c" />
+    <ClCompile Include="..\clip\clipstl.c" />
+    <ClCompile Include="..\clip\clipstr.c" />
+    <ClCompile Include="..\clip\extclip.c" />
+    <ClCompile Include="..\clip\garray.c" />
+    <ClCompile Include="..\clip\ght_hash_table.c" />
+    <ClCompile Include="..\clip\gslist.c" />
+    <ClCompile Include="..\clip\gstring.c" />
+    <ClCompile Include="..\clip\strv.c" />
     <ClCompile Include="..\TinyJS.cpp" />
     <ClCompile Include="..\TinyJS_Functions.cpp" />
     <ClCompile Include="..\TinyJS_MathFunctions.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\clip\clip.h" />
+    <ClInclude Include="..\clip\clipdlst.h" />
+    <ClInclude Include="..\clip\cliphash.h" />
+    <ClInclude Include="..\clip\clipsort.h" />
+    <ClInclude Include="..\clip\clipstl.h" />
+    <ClInclude Include="..\clip\clipstr.h" />
+    <ClInclude Include="..\clip\extclip.h" />
+    <ClInclude Include="..\clip\garray.h" />
+    <ClInclude Include="..\clip\ght_hash_table.h" />
+    <ClInclude Include="..\clip\gslist.h" />
+    <ClInclude Include="..\clip\gstring.h" />
+    <ClInclude Include="..\clip\strv.h" />
     <ClInclude Include="..\TinyJS.h" />
     <ClInclude Include="..\TinyJS_Functions.h" />
     <ClInclude Include="..\TinyJS_MathFunctions.h" />

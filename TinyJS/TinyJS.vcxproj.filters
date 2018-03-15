@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="clip">
+      <UniqueIdentifier>{1235ca2e-3430-4637-b6b9-a3af8eadcafd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\TinyJS.cpp">
@@ -24,6 +27,39 @@
     <ClCompile Include="..\TinyJS_MathFunctions.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="..\clip\clipdlst.c">
+      <Filter>clip</Filter>
+    </ClCompile>
+    <ClCompile Include="..\clip\cliphash.c">
+      <Filter>clip</Filter>
+    </ClCompile>
+    <ClCompile Include="..\clip\clipsort.c">
+      <Filter>clip</Filter>
+    </ClCompile>
+    <ClCompile Include="..\clip\clipstl.c">
+      <Filter>clip</Filter>
+    </ClCompile>
+    <ClCompile Include="..\clip\clipstr.c">
+      <Filter>clip</Filter>
+    </ClCompile>
+    <ClCompile Include="..\clip\extclip.c">
+      <Filter>clip</Filter>
+    </ClCompile>
+    <ClCompile Include="..\clip\garray.c">
+      <Filter>clip</Filter>
+    </ClCompile>
+    <ClCompile Include="..\clip\ght_hash_table.c">
+      <Filter>clip</Filter>
+    </ClCompile>
+    <ClCompile Include="..\clip\gslist.c">
+      <Filter>clip</Filter>
+    </ClCompile>
+    <ClCompile Include="..\clip\gstring.c">
+      <Filter>clip</Filter>
+    </ClCompile>
+    <ClCompile Include="..\clip\strv.c">
+      <Filter>clip</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\TinyJS.h">
@@ -34,6 +70,42 @@
     </ClInclude>
     <ClInclude Include="..\TinyJS_MathFunctions.h">
       <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\clip\clip.h">
+      <Filter>clip</Filter>
+    </ClInclude>
+    <ClInclude Include="..\clip\clipdlst.h">
+      <Filter>clip</Filter>
+    </ClInclude>
+    <ClInclude Include="..\clip\cliphash.h">
+      <Filter>clip</Filter>
+    </ClInclude>
+    <ClInclude Include="..\clip\clipsort.h">
+      <Filter>clip</Filter>
+    </ClInclude>
+    <ClInclude Include="..\clip\clipstl.h">
+      <Filter>clip</Filter>
+    </ClInclude>
+    <ClInclude Include="..\clip\clipstr.h">
+      <Filter>clip</Filter>
+    </ClInclude>
+    <ClInclude Include="..\clip\extclip.h">
+      <Filter>clip</Filter>
+    </ClInclude>
+    <ClInclude Include="..\clip\garray.h">
+      <Filter>clip</Filter>
+    </ClInclude>
+    <ClInclude Include="..\clip\ght_hash_table.h">
+      <Filter>clip</Filter>
+    </ClInclude>
+    <ClInclude Include="..\clip\gslist.h">
+      <Filter>clip</Filter>
+    </ClInclude>
+    <ClInclude Include="..\clip\gstring.h">
+      <Filter>clip</Filter>
+    </ClInclude>
+    <ClInclude Include="..\clip\strv.h">
+      <Filter>clip</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

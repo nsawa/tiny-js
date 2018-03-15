@@ -18,7 +18,19 @@
 #include "TinyJS.h"
 #include "TinyJS_Functions.h"
 #include "TinyJS_MathFunctions.h"
+#include <io.h>		//_isatty()
+#include <conio.h>	//_getch()
 //=============================================================================
+//function print(str: string): void
+static void js_print(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
+	printf("> %s\n", v->getParameter("str")->getString().c_str());
+}
+//-----------------------------------------------------------------------------
+//function dump(): void
+static void js_dump(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
+	tinyJS->trace();
+}
+//-----------------------------------------------------------------------------
 static int run_test(const char* fileName) {
 	//スクリプトファイル名を表示する。
 	printf("TEST %s ", fileName);
@@ -44,8 +56,8 @@ static int run_test(const char* fileName) {
 	//関数を登録する。
 	registerFunctions(tinyJS);
 	registerMathFunctions(tinyJS);
-//不要	tinyJS->addNative("function print(str)", js_print, NULL);
-//不要	tinyJS->addNative("function dump()",     js_dump,  NULL);
+	tinyJS->addNative("function print(str)", js_print, NULL);
+	tinyJS->addNative("function dump()",     js_dump,  NULL);
 	//グローバルオブジェクトに、テスト結果の初期値(0:失敗)を登録する。
 	tinyJS->root->addChild("result", new CScriptVar("0", TINYJS_SCRIPTVAR_INTEGER));
 	//スクリプトを実行する。
@@ -79,6 +91,7 @@ static int run_test(const char* fileName) {
 }
 //-----------------------------------------------------------------------------
 int main(int argc, char** argv) {
+	int result;
 	//メモリリーク検出を開始する。
 	putenv("GC_LOG_FILE=CON");
 	GC_set_find_leak(1);
@@ -101,14 +114,14 @@ int main(int argc, char** argv) {
 		}
 		//テスト実行数、テスト成功数、テスト失敗数を表示する。
 		printf("Done. %d tests, %d pass, %d fail\n", count, passed, count - passed);
-		return !(count == passed);	//テスト失敗数が0ならば、正常終了(0)とする。
+		result = !(count == passed);	//テスト失敗数が0ならば、正常終了(0)とする。
 	//引数が一個指定されていたら…
 	} else if(argc == (1 + 1)) {
 		//指定されたスクリプトを実行する。
 		int passed = run_test(argv[1]);
 		//メモリリークを検出する。
 		CHECK_LEAKS();
-		return !passed;	//テスト成功(1)ならば、正常終了(0)とする。
+		result = !passed;	//テスト成功(1)ならば、正常終了(0)とする。
 	//引数が二個以上指定されていたら…
 	} else {
 		//使い方を表示する。
@@ -116,7 +129,12 @@ int main(int argc, char** argv) {
 		printf("USAGE:\n");
 		printf("    ./run_tests            : run all tests\n");
 		printf("    ./run_tests test.js    : run just one test\n");
-		return 1;	//異常終了(1)とする。
+		result = EXIT_FAILURE;	//異常終了(1)とする。
 	}
+	//異常終了,且つ,出力がリダイレクトされていなければ、キー入力を待つ。(VisualStudioからデバッグ実行された場合を想定して)
+//	if(result && _isatty(fileno(stdin))) {
+		printf("続行するには何かキーを押してください . . .");	//PAUSEコマンドと同じメッセージにした。
+		_getch();
+//	}
+	return result;
 }
-//-----------------------------------------------------------------------------
