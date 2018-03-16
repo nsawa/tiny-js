@@ -116,77 +116,6 @@ inline string operator +(const string& s, const char* p) {
 	return s + string(p);
 }
 //*****************************************************************************
-//	std::vector<T>の代用
-//*****************************************************************************
-template<class T> class vector : public gc_cleanup {
-public:
-	explicit vector(int n = 0) {
-		m_n = n;
-		m_p = new (GC) T[n];
-	}
-	vector(const vector<T>& v) {	//コピーコンストラクタ
-		m_n = v.m_n;
-		m_p = new (GC) T[v.m_n];
-		for(int i = 0; i < v.m_n; i++) {
-			m_p[i] = v.m_p[i];
-		}
-	}
-	vector& operator =(const vector<T>& v) {	//代入演算子
-		T* new_p = new (GC) T[v.m_n];
-		for(int i = 0; i < v.m_n; i++) {
-			new_p[i] = v.m_p[i];
-		}
-		delete [] m_p;	//エリアスセーフ
-		m_n = v.m_n;
-		m_p = new_p;
-		return *this;
-	}
-	~vector() {
-		delete [] m_p;
-	}
-	void clear() {
-		delete [] m_p;
-		m_n = 0;
-		m_p = new (GC) T[0];
-	}
-	void push_back(const T& t) {
-		T* new_p = new (GC) T[m_n + 1];
-		for(int i = 0; i < m_n + 1; i++) {
-			new_p[i] = (i < m_n) ? m_p[i] : t;
-		}
-		delete [] m_p;
-		m_n++;
-		m_p = new_p;
-	}
-	void pop_back() {
-		assert(m_n);
-		T* new_p = new (GC) T[m_n - 1];
-		for(int i = 0; i < m_n - 1; i++) {
-			new_p[i] = m_p[i];
-		}
-		delete [] m_p;
-		m_n--;
-		m_p = new_p;
-	}
-	const T& back() const {
-		assert(m_n);
-		return m_p[m_n - 1];
-	}
-	int size() const {
-		return m_n;
-	}
-	int empty() const {
-		return m_n == 0;
-	}
-	const T& operator [](int i) const {
-		assert((unsigned)i < (unsigned)m_n);
-		return m_p[i];
-	}
-private:
-	int	m_n;
-	T*	m_p;
-};
-//*****************************************************************************
 //	
 //*****************************************************************************
 #ifndef TRACE
@@ -387,28 +316,28 @@ public:
 	string getJSON(const char* linePrefix = "");			//Write out all the JS code needed to recreate this script variable to the stream (as JSON).
 	void setCallback(TinyJS_Callback* callback, void* userdata);	//Set the callback for native functions.
 
-	GSList*			firstChild;
+	GSList/*<CScriptVarLink*>*/*	firstChild;
 
 	//For memory management/garbage collection.
-	CScriptVar* ref();			//Add reference to this variable.
-	void unref();				//Remove a reference, and delete this variable if required.
+	CScriptVar* ref();				//Add reference to this variable.
+	void unref();					//Remove a reference, and delete this variable if required.
 //{{削除:明らかに不要なので削除。外部から参照カウントが見られるのは害にしかならない。
-//	int getRefs();				//Get the number of references to this script variable.
+//	int getRefs();					//Get the number of references to this script variable.
 //}}削除:明らかに不要なので削除。外部から参照カウントが見られるのは害にしかならない。
 private:
-	int			refs;		//The number of references held to this - used for garbage collection.
+	int				refs;		//The number of references held to this - used for garbage collection.
 
-	int			flags;		//The flags determine the type of the variable - int/double/string/etc.
-	double			doubleData;	//The contents of this variable if it is a double.
-	int			intData;	//The contents of this variable if it is an int.
-	string			data;		//The contents of this variable if it is a string.
-	TinyJS_Callback*	callback;	//Callback for native functions.
-	void*			userdata;	//User data passed as second argument to native functions.
+	int				flags;		//The flags determine the type of the variable - int/double/string/etc.
+	double				doubleData;	//The contents of this variable if it is a double.
+	int				intData;	//The contents of this variable if it is an int.
+	string				data;		//The contents of this variable if it is a string.
+	TinyJS_Callback*		callback;	//Callback for native functions.
+	void*				userdata;	//User data passed as second argument to native functions.
 
-	~CScriptVar();				//明示的に削除出来ないように、デストラクタをprivateにした。unref()によってのみ削除出来る。
+	~CScriptVar();					//明示的に削除出来ないように、デストラクタをprivateにした。unref()によってのみ削除出来る。
 
-	void init();				//Initialisation of data members.
-	void copySimpleData(CScriptVar* v);	//Copy the basic data and flags from the variable given, with no children. Should be used internally only - by copyValue and deepCopy.
+	void init();					//Initialisation of data members.
+	void copySimpleData(CScriptVar* v);		//Copy the basic data and flags from the variable given, with no children. Should be used internally only - by copyValue and deepCopy.
 
 	friend class CTinyJS;
 };
@@ -451,17 +380,17 @@ public:
 	//Send all variables to stdout.
 	void trace(const char* indent = "");
 
-	CScriptVar*		root;		//Root of symbol table.		//※要検討:グローバルオブジェクトの事です。Webブラウザでの実装の場合「window」が、Node.jsの場合は「global」がグローバルオブジェクトとなります。rootという変数名はやめて、window,又は,globalに変える方が良いのでは？
+	CScriptVar*			root;		//Root of symbol table.			//※要検討:グローバルオブジェクトの事です。Webブラウザでの実装の場合「window」が、Node.jsの場合は「global」がグローバルオブジェクトとなります。rootという変数名はやめて、window,又は,globalに変える方が良いのでは？
 private:
-	CScriptLex*		lex;		//Current lexer.
-	vector<CScriptVar*>	scopes;		//Stack of scopes when parsing.
+	CScriptLex*			lex;		//Current lexer.
+	GSList/*<CScriptVar*>*/*	scopes;		//Stack of scopes when parsing.		//※元は先頭がrootで末尾が現在のスタックだったが、逆にして、先頭が現在のスタックで末尾をrootにした。その方がfindInScopes()の実装上も都合が良いし、今後クロージャを作る時にも自然に実装出来るはずだ。リストの末尾方向(rootに向けての方向)へのリンクは、クロージャを作った時点から変更される事は無いので、単純にその時点でのscopesを保持すれば良くなるので。
 #ifdef  TINYJS_CALL_STACK
-	vector<string>		call_stack;	//Names of places called so we can show when erroring.
+	GSList/*<char*>*/*		call_stack;	//Names of places called so we can show when erroring.
 #endif//TINYJS_CALL_STACK
 
-	CScriptVar*		stringClass;	//Built in string class.
-	CScriptVar*		objectClass;	//Built in object class.
-	CScriptVar*		arrayClass;	//Built in array class.
+	CScriptVar*			stringClass;	//Built in string class.
+	CScriptVar*			objectClass;	//Built in object class.
+	CScriptVar*			arrayClass;	//Built in array class.
 
 	//Parsing - in order of precedence.
 	CScriptVarLink* functionCall(bool* pExec, CScriptVarLink* function, CScriptVar* parent);
@@ -482,5 +411,7 @@ private:
 
 	CScriptVarLink* findInScopes(const char* name);				//Finds a child, looking recursively up the scopes.
 	CScriptVarLink* findInParentClasses(CScriptVar* obj, const char* name);	//Look up in any parent classes of the given object.
+
+	string stack_trace(CScriptException* e);	//元ソースにはこの関数は有りませんが、共通処理をまとめるために追加しました。
 };
 #endif//__TINYJS_H__

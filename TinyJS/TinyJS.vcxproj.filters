@@ -27,10 +27,16 @@
     <ClCompile Include="..\TinyJS_MathFunctions.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="..\clip\clipdie.c">
+      <Filter>clip</Filter>
+    </ClCompile>
     <ClCompile Include="..\clip\clipdlst.c">
       <Filter>clip</Filter>
     </ClCompile>
     <ClCompile Include="..\clip\cliphash.c">
+      <Filter>clip</Filter>
+    </ClCompile>
+    <ClCompile Include="..\clip\clipseh.c">
       <Filter>clip</Filter>
     </ClCompile>
     <ClCompile Include="..\clip\clipsort.c">
@@ -74,10 +80,16 @@
     <ClInclude Include="..\clip\clip.h">
       <Filter>clip</Filter>
     </ClInclude>
+    <ClInclude Include="..\clip\clipdie.h">
+      <Filter>clip</Filter>
+    </ClInclude>
     <ClInclude Include="..\clip\clipdlst.h">
       <Filter>clip</Filter>
     </ClInclude>
     <ClInclude Include="..\clip\cliphash.h">
+      <Filter>clip</Filter>
+    </ClInclude>
+    <ClInclude Include="..\clip\clipseh.h">
       <Filter>clip</Filter>
     </ClInclude>
     <ClInclude Include="..\clip\clipsort.h">
@@ -107,5 +119,15 @@
     <ClInclude Include="..\clip\strv.h">
       <Filter>clip</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\clip\00_README.txt">
+      <Filter>clip</Filter>
+    </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\clip\99_COPY.bat">
+      <Filter>clip</Filter>
+    </None>
   </ItemGroup>
 </Project>

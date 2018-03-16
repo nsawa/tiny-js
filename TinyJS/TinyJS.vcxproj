@@ -123,8 +123,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\clip\clipdie.c" />
     <ClCompile Include="..\clip\clipdlst.c" />
     <ClCompile Include="..\clip\cliphash.c" />
+    <ClCompile Include="..\clip\clipseh.c" />
     <ClCompile Include="..\clip\clipsort.c" />
     <ClCompile Include="..\clip\clipstl.c" />
     <ClCompile Include="..\clip\clipstr.c" />
@@ -140,8 +142,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\clip\clip.h" />
+    <ClInclude Include="..\clip\clipdie.h" />
     <ClInclude Include="..\clip\clipdlst.h" />
     <ClInclude Include="..\clip\cliphash.h" />
+    <ClInclude Include="..\clip\clipseh.h" />
     <ClInclude Include="..\clip\clipsort.h" />
     <ClInclude Include="..\clip\clipstl.h" />
     <ClInclude Include="..\clip\clipstr.h" />
@@ -154,6 +158,12 @@
     <ClInclude Include="..\TinyJS.h" />
     <ClInclude Include="..\TinyJS_Functions.h" />
     <ClInclude Include="..\TinyJS_MathFunctions.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\clip\00_README.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\clip\99_COPY.bat" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

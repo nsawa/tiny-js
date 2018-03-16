@@ -567,7 +567,7 @@ CScriptVar* CScriptVar::getParameter(const char* name) {
 //-----------------------------------------------------------------------------
 //Tries to find a child with the given name, may return NULL.
 CScriptVarLink* CScriptVar::findChild(const char* name) {
-	GSList* list = firstChild;
+	GSList/*<CScriptVarLink*>*/* list = firstChild;
 	while(list) {
 		CScriptVarLink* l = (CScriptVarLink*)list->data;
 		if(l->name.compare(name) == 0) { return l; }
@@ -613,7 +613,7 @@ CScriptVarLink* CScriptVar::addChildNoDup(const char* name, CScriptVar* v) {
 }
 //-----------------------------------------------------------------------------
 void CScriptVar::removeChild(CScriptVar* v) {
-	GSList* list = firstChild;
+	GSList/*<CScriptVarLink*>*/* list = firstChild;
 	while(list) {
 		CScriptVarLink* l = (CScriptVarLink*)list->data;
 		if(l->var == v) {
@@ -672,7 +672,7 @@ void CScriptVar::setArrayIndex(int i, CScriptVar* v) {
 int CScriptVar::getArrayLength() {
 	if(!isArray()) { return 0; }
 	int ubound = -1;
-	GSList* list = firstChild;
+	GSList/*<CScriptVarLink*>*/* list = firstChild;
 	while(list) {
 		CScriptVarLink* l = (CScriptVarLink*)list->data;
 		char* endptr;
@@ -893,7 +893,7 @@ void CScriptVar::copyValue(CScriptVar* v) {	//※TinyJS_Functions.cppのObject.clo
 		//Remove all current children.
 		removeAllChildren();
 		//Copy children of 'v'.
-		GSList* list = v->firstChild;
+		GSList/*<CScriptVarLink*>*/* list = v->firstChild;
 		while(list) {
 			CScriptVarLink* l = (CScriptVarLink*)list->data;
 			CScriptVar* tmp;
@@ -926,7 +926,7 @@ void CScriptVar::trace(const char* indent, const char* name) {
 		getString().c_str(),
 		getFlagsAsString().c_str());
 	string indentStr = string(indent) + " ";
-	GSList* list = firstChild;
+	GSList/*<CScriptVarLink*>*/* list = firstChild;
 	while(list) {
 		CScriptVarLink* l = (CScriptVarLink*)list->data;
 		l->var->trace(indentStr.c_str(), l->name.c_str());
@@ -937,13 +937,14 @@ void CScriptVar::trace(const char* indent, const char* name) {
 //For debugging - just dump a string version of the flags.
 string CScriptVar::getFlagsAsString() {
 	string flagstr = "";
-	if(flags & TINYJS_SCRIPTVAR_DOUBLE)   { flagstr = flagstr + "DOUBLE"; }
-	if(flags & TINYJS_SCRIPTVAR_INTEGER)  { flagstr = flagstr + "INTEGER"; }
-	if(flags & TINYJS_SCRIPTVAR_STRING)   { flagstr = flagstr + "STRING"; }
-	if(flags & TINYJS_SCRIPTVAR_FUNCTION) { flagstr = flagstr + "FUNCTION"; }
-	if(flags & TINYJS_SCRIPTVAR_OBJECT)   { flagstr = flagstr + "OBJECT"; }
-	if(flags & TINYJS_SCRIPTVAR_ARRAY)    { flagstr = flagstr + "ARRAY"; }
-	if(flags & TINYJS_SCRIPTVAR_NATIVE)   { flagstr = flagstr + "NATIVE"; }
+	if(flags & TINYJS_SCRIPTVAR_DOUBLE)   { flagstr = flagstr + " DOUBLE"; }
+	if(flags & TINYJS_SCRIPTVAR_INTEGER)  { flagstr = flagstr + " INTEGER"; }
+	if(flags & TINYJS_SCRIPTVAR_STRING)   { flagstr = flagstr + " STRING"; }
+	if(flags & TINYJS_SCRIPTVAR_FUNCTION) { flagstr = flagstr + " FUNCTION"; }
+	if(flags & TINYJS_SCRIPTVAR_OBJECT)   { flagstr = flagstr + " OBJECT"; }
+	if(flags & TINYJS_SCRIPTVAR_ARRAY)    { flagstr = flagstr + " ARRAY"; }
+	if(flags & TINYJS_SCRIPTVAR_NATIVE)   { flagstr = flagstr + " NATIVE"; }
+	if(flagstr.length() && (flagstr[0] == '0')) { flagstr = flagstr.substr(1); }
 	return flagstr;
 }
 //-----------------------------------------------------------------------------
@@ -954,7 +955,7 @@ string CScriptVar::getParsableString() {
 	if(isFunction()) {
 		string funcStr = "function (";
 		//Get list of parameters.
-		GSList* list = firstChild;
+		GSList/*<CScriptVarLink*>*/* list = firstChild;
 		while(list) {
 			CScriptVarLink* l = (CScriptVarLink*)list->data;
 			funcStr += l->name;
@@ -980,7 +981,7 @@ string CScriptVar::getJSON(const char* linePrefix) {
 	if(isObject()) {
 		//Children - handle with bracketed list.
 		destination += "{\n";
-		GSList* list = firstChild;
+		GSList/*<CScriptVarLink*>*/* list = firstChild;
 		while(list) {
 			CScriptVarLink* l = (CScriptVarLink*)list->data;
 			destination += indentedLinePrefix;
@@ -1039,8 +1040,12 @@ void CScriptVar::unref() {
 //	CTinyJS
 //*****************************************************************************
 CTinyJS::CTinyJS() {
-	lex  = NULL;
-	root = (new CScriptVar(TINYJS_BLANK_DATA, TINYJS_SCRIPTVAR_OBJECT))->ref();
+	lex         = NULL;
+	scopes      = NULL;
+#ifdef  TINYJS_CALL_STACK
+	call_stack  = NULL;
+#endif//TINYJS_CALL_STACK
+	root        = (new CScriptVar(TINYJS_BLANK_DATA, TINYJS_SCRIPTVAR_OBJECT))->ref();
 	//Add built-in classes.
 	stringClass = (new CScriptVar(TINYJS_BLANK_DATA, TINYJS_SCRIPTVAR_OBJECT))->ref();
 	arrayClass  = (new CScriptVar(TINYJS_BLANK_DATA, TINYJS_SCRIPTVAR_OBJECT))->ref();
@@ -1052,11 +1057,14 @@ CTinyJS::CTinyJS() {
 //-----------------------------------------------------------------------------
 CTinyJS::~CTinyJS() {
 	assert(!lex);
-//不要	scopes.clear();
+	assert(!scopes);
+#ifdef  TINYJS_CALL_STACK
+	assert(!call_stack);
+#endif//TINYJS_CALL_STACK
+	root->unref();
 	stringClass->unref();
 	arrayClass->unref();
 	objectClass->unref();
-	root->unref();
 }
 //-----------------------------------------------------------------------------
 void CTinyJS::trace(const char* indent) {
@@ -1064,45 +1072,36 @@ void CTinyJS::trace(const char* indent) {
 }
 //-----------------------------------------------------------------------------
 void CTinyJS::execute(const char* code) {
-	CScriptLex*         const save_lex        = lex;
-	vector<CScriptVar*> const save_scopes     = scopes;
+	CScriptLex* save_lex = lex;
+	GSList/*<CScriptVar*>*/* save_scopes = scopes;
 #ifdef TINYJS_CALL_STACK
-	vector<string>      const save_call_stack = call_stack;
+	GSList/*<char*>*/* save_call_stack = call_stack;
 #endif//TINYJS_CALL_STACK
 	{
 		lex = new CScriptLex(code);
+		scopes = g_slist_prepend(NULL, root);
 #ifdef TINYJS_CALL_STACK
-		call_stack.clear();
+		call_stack = NULL;
 #endif//TINYJS_CALL_STACK
-		scopes.clear();
-		scopes.push_back(root);
 		try {
 			bool bExec = true;
 			while(lex->tk) { statement(&bExec); }
 		} catch(CScriptException* e) {
-			string msg;
-			msg += "Error ";
-			msg += e->text;
-#ifdef TINYJS_CALL_STACK
-			for(int i= (int)call_stack.size() - 1; i >= 0; i--) {
-				char buf[256];
-				msg += "\n";
-				msg += itoa(i, buf, 10);
-				msg += ": ";
-				msg += call_stack[i];
-			}
-#endif//TINYJS_CALL_STACK
-			msg += " at ";
-			msg += lex->getLastPosition();
+			string msg = stack_trace(e);
 			delete lex;
-			lex    = save_lex;
-	//※要検討	scopes = save_scopes;	は要らないのか？元ソースに無かったが…
+			g_slist_free(scopes);
+			lex = save_lex;
+			scopes = save_scopes;
+#ifdef TINYJS_CALL_STACK
+			call_stack = save_call_stack;
+#endif//TINYJS_CALL_STACK
 			throw new CScriptException(msg.c_str());
 		}
 		delete lex;
+		if(!scopes || (scopes->data != root) || g_slist_delete_link(scopes, scopes)) { DIE(); }	//[root]に戻っているはずであり、rootを取り除けば[]になるはず。
 	}
-	lex        = save_lex;
-	scopes     = save_scopes;
+	lex = save_lex;
+	scopes = save_scopes;
 #ifdef TINYJS_CALL_STACK
 	call_stack = save_call_stack;
 #endif//TINYJS_CALL_STACK
@@ -1113,44 +1112,47 @@ void CTinyJS::execute(const char* code) {
 //CScriptVarLink is returned as this will automatically unref the result as it goes out of scope.
 //If you want to keep it, you must use ref() and unref().
 CScriptVarLink CTinyJS::evaluateComplex(const char* code) {
-	CScriptLex* oldLex = lex;
-	vector<CScriptVar*> oldScopes = scopes;
-	lex = new CScriptLex(code);
-#ifdef TINYJS_CALL_STACK
-	call_stack.clear();
-#endif//TINYJS_CALL_STACK
-	scopes.clear();
-	scopes.push_back(root);
 	CScriptVarLink* l = NULL;
-	try {
-		bool bExec = true;
-		do {
-			CLEAN(l);
-			l = base(&bExec);
-		if(lex->tk!=TINYJS_LEX_EOF) lex->match(';');
-		} while(lex->tk!=TINYJS_LEX_EOF);
-	} catch(CScriptException* e) {
-		string msg;
-		msg += "Error ";
-		msg += e->text;
+	CScriptLex* save_lex = lex;
+	GSList/*<CScriptVar*>*/* save_scopes = scopes;
 #ifdef TINYJS_CALL_STACK
-		for(int i = call_stack.size() - 1; i >= 0; i--) {
-			msg += "\n";
-			msg += i;
-			msg += ": ";
-			msg += call_stack[i];
-		}
+	GSList/*<char*>*/* save_call_stack = call_stack;
 #endif//TINYJS_CALL_STACK
-		msg += " at ";
-		msg += lex->getLastPosition();
+	{
+		lex = new CScriptLex(code);
+		scopes = g_slist_prepend(NULL, root);	//[root]
+#ifdef TINYJS_CALL_STACK
+		call_stack = NULL;	//[]
+#endif//TINYJS_CALL_STACK
+		try {
+			bool bExec = true;
+			do {
+				CLEAN(l);
+				l = base(&bExec);
+				if(lex->tk != TINYJS_LEX_EOF) { lex->match(';'); }
+			} while(lex->tk != TINYJS_LEX_EOF);
+		} catch(CScriptException* e) {
+			string msg = stack_trace(e);
+			delete lex;
+			g_slist_free(scopes);
+			lex = save_lex;
+			scopes = save_scopes;
+#ifdef TINYJS_CALL_STACK
+			call_stack = save_call_stack;
+#endif//TINYJS_CALL_STACK
+			throw new CScriptException(msg.c_str());
+		}
 		delete lex;
-		lex = oldLex;
-//※要検討	scopes = oldScopes;	は要らないのか？元ソースに無かったが…
-		throw new CScriptException(msg.c_str());
+		if(!scopes || (scopes->data != root) || g_slist_delete_link(scopes, scopes)) { DIE(); }	//[root]に戻っているはずであり、rootを取り除けば[]になるはず。
+#ifdef TINYJS_CALL_STACK
+		if(call_stack) { DIE(); }	//[]に戻っているはず。
+#endif//TINYJS_CALL_STACK
 	}
-	delete lex;
-	lex = oldLex;
-	scopes = oldScopes;
+	lex = save_lex;
+	scopes = save_scopes;
+#ifdef TINYJS_CALL_STACK
+	call_stack = save_call_stack;
+#endif//TINYJS_CALL_STACK
 	if(l) {
 		CScriptVarLink r = *l;	//┐
 		CLEAN(l);		//├※なぜ!?(※TODO:要理解)
@@ -1174,7 +1176,7 @@ string CTinyJS::evaluate(const char* code) {
 //│void scSubstring(CScriptVar* v, void* userdata) { ... }
 //│tinyJS->addNative("function String.substring(lo, hi)", scSubstring, NULL);
 void CTinyJS::addNative(const char* funcDesc, TinyJS_Callback* callback, void* userdata) {
-	CScriptLex* oldLex = lex;
+	CScriptLex* save_lex = lex;
 	lex = new CScriptLex(funcDesc);
 
 	CScriptVar* base = root;
@@ -1186,7 +1188,7 @@ void CTinyJS::addNative(const char* funcDesc, TinyJS_Callback* callback, void* u
 	while(lex->tk == '.') {
 		lex->match('.');
 		CScriptVarLink* l = base->findChild(funcName.c_str());
-			//if it doesn't exist, make an object class
+		//If it doesn't exist, make an object class.
 		if(!l) {
 			l = base->addChild(funcName.c_str(), new CScriptVar(TINYJS_BLANK_DATA, TINYJS_SCRIPTVAR_OBJECT));
 		}
@@ -1199,7 +1201,7 @@ void CTinyJS::addNative(const char* funcDesc, TinyJS_Callback* callback, void* u
 	funcVar->setCallback(callback, userdata);
 	parseFunctionArguments(funcVar);
 	delete lex;
-	lex = oldLex;
+	lex = save_lex;
 
 	base->addChild(funcName.c_str(), funcVar);
 }
@@ -1220,7 +1222,7 @@ CScriptVarLink* CTinyJS::functionCall(bool* pExec, CScriptVarLink* func, CScript
 			functionRoot->addChildNoDup("this", parent);
 		}
 		//Grab in all parameters.
-		GSList* list = func->var->firstChild;
+		GSList/*<CScriptVarLink*>*/* list = func->var->firstChild;
 		while(list) {
 			CScriptVarLink* l = (CScriptVarLink*)list->data;
 			CScriptVarLink* tmp = base(pExec);
@@ -1241,9 +1243,10 @@ CScriptVarLink* CTinyJS::functionCall(bool* pExec, CScriptVarLink* func, CScript
 		//Execute function!
 		//Add the function's execute space to the symbol table so we can recurse.
 		CScriptVarLink* returnVarLink = functionRoot->addChild(TINYJS_RETURN_VAR);
-		scopes.push_back(functionRoot);
+		scopes = g_slist_prepend(scopes, functionRoot);
 #ifdef TINYJS_CALL_STACK
-		call_stack.push_back(func->name + " from " + lex->getLastPosition());
+		char* call_stack_str = strdup_printf("%s from %s", func->name.c_str(), lex->getLastPosition().c_str());
+		call_stack = g_slist_prepend(call_stack, call_stack_str);
 #endif//TINYJS_CALL_STACK
 		if(func->var->isNative()) {
 			assert(func->var->callback);
@@ -1251,9 +1254,8 @@ CScriptVarLink* CTinyJS::functionCall(bool* pExec, CScriptVarLink* func, CScript
 		} else {
 			//We just want to execute the block, but something could have messed up and left us with the wrong ScriptLex, so we want to be careful here...
 			CScriptException* exception = NULL;
-			CScriptLex* oldLex = lex;
-			CScriptLex* newLex = new CScriptLex(func->var->getString().c_str());
-			lex = newLex;
+			CScriptLex* save_lex = lex;
+			lex = new CScriptLex(func->var->getString().c_str());
 			try {
 				block(pExec);
 				//because return will probably have called this, and set execute to false
@@ -1261,17 +1263,20 @@ CScriptVarLink* CTinyJS::functionCall(bool* pExec, CScriptVarLink* func, CScript
 			} catch(CScriptException* e) {
 				exception = e;
 			}
-			delete newLex;
-			lex = oldLex;
+			delete lex;
+			lex = save_lex;
 			if(exception) {
-//※要検討			scopes.pop_back();	は要らないのか？元ソースに無かったが…
+//※要検討			scopes = g_slist_delete_link(scopes, scopes);	は要らないのか？元ソースに無かったが…
 				throw exception;
 			}
 		}
+		if(!scopes || (scopes->data != functionRoot)) { DIE(); }		//[functionRoot,...,root]に戻っているはず。
+		scopes = g_slist_delete_link(scopes, scopes);				//[...,root]
 #ifdef TINYJS_CALL_STACK
-		if(!call_stack.empty()) { call_stack.pop_back(); }
+		if(!call_stack || (call_stack->data != call_stack_str)) { DIE(); }	//[call_stack_str,...]に戻っているはず。
+		call_stack = g_slist_delete_link(call_stack, call_stack);		//[...]
+		free(call_stack_str);
 #endif//TINYJS_CALL_STACK
-		scopes.pop_back();
 		//Get the real return var before we remove it from our function.
 		CScriptVarLink* tmp = new CScriptVarLink(returnVarLink->var);		//※ガベージコレクション前提にしたらこの処理は不要になり、単にreturnVarLink->varを返すだけで良くなるはず。(※TODO:要検討)
 		functionRoot->removeLink(returnVarLink);
@@ -1714,7 +1719,8 @@ void CTinyJS::statement(bool* pExec) {
 		while(lex->tk != ';') {
 			CScriptVarLink* a = 0;
 			if(*pExec) {
-				a = scopes.back()->findChildOrCreate(lex->tkStr.c_str());
+				CScriptVar* v = (CScriptVar*)scopes->data;
+				a = v->findChildOrCreate(lex->tkStr.c_str());
 			}
 			lex->match(TINYJS_LEX_ID);
 			//Now do stuff defined with dots.
@@ -1768,7 +1774,7 @@ void CTinyJS::statement(bool* pExec) {
 		int whileBodyStart = lex->tokenStart;
 		statement(loopCond ? pExec : &noexecute);
 		CScriptLex* whileBody = lex->getSubLex(whileBodyStart);
-		CScriptLex* oldLex = lex;
+		CScriptLex* save_lex = lex;
 		int loopCount = TINYJS_LOOP_MAX_ITERATIONS;
 		while(loopCond && loopCount-->0) {
 			whileCond->reset();
@@ -1782,7 +1788,7 @@ void CTinyJS::statement(bool* pExec) {
 				statement(pExec);
 			}
 		}
-		lex = oldLex;
+		lex = save_lex;
 		delete whileCond;
 		delete whileBody;
 		if(loopCount<=0) {
@@ -1809,7 +1815,7 @@ void CTinyJS::statement(bool* pExec) {
 		int forBodyStart = lex->tokenStart;
 		statement(loopCond ? pExec : &noexecute);
 		CScriptLex* forBody = lex->getSubLex(forBodyStart);
-		CScriptLex* oldLex = lex;
+		CScriptLex* save_lex = lex;
 		if(loopCond) {
 			forIter->reset();
 			lex = forIter;
@@ -1833,7 +1839,7 @@ void CTinyJS::statement(bool* pExec) {
 				CLEAN(base(pExec));
 			}
 		}
-		lex = oldLex;
+		lex = save_lex;
 		delete forCond;
 		delete forIter;
 		delete forBody;
@@ -1849,7 +1855,8 @@ void CTinyJS::statement(bool* pExec) {
 			result = base(pExec);
 		}
 		if(*pExec) {
-			CScriptVarLink* resultVar = scopes.back()->findChild(TINYJS_RETURN_VAR);
+			CScriptVar* v = (CScriptVar*)scopes->data;
+			CScriptVarLink* resultVar = v->findChild(TINYJS_RETURN_VAR);
 			if(resultVar) {
 				resultVar->replaceWith(result);
 			} else {
@@ -1865,7 +1872,8 @@ void CTinyJS::statement(bool* pExec) {
 			if(funcVar->name == TINYJS_TEMP_NAME) {
 				TRACE("Functions defined at statement-level are meant to have a name.\n");
 			} else {
-				scopes.back()->addChildNoDup(funcVar->name.c_str(), funcVar->var);
+				CScriptVar* v = (CScriptVar*)scopes->data;
+				v->addChildNoDup(funcVar->name.c_str(), funcVar->var);
 			}
 		}
 		CLEAN(funcVar);
@@ -1952,9 +1960,12 @@ void CTinyJS::parseFunctionArguments(CScriptVar* funcVar) {
 //-----------------------------------------------------------------------------
 //Finds a child, looking recursively up the scopes.
 CScriptVarLink* CTinyJS::findInScopes(const char* name) {
-	for(int i = scopes.size() - 1; i >= 0; i--) {
-		CScriptVarLink* l = scopes[i]->findChild(name);
+	GSList/*<CScriptVar*>*/* list = scopes;
+	while(list) {
+		CScriptVar* v = (CScriptVar*)list->data;
+		CScriptVarLink* l = v->findChild(name);
 		if(l) { return l; }
+		list = list->next;
 	}
 	return NULL;
 }
@@ -1980,4 +1991,26 @@ CScriptVarLink* CTinyJS::findInParentClasses(CScriptVar* obj, const char* name) 
 	CScriptVarLink* implementation = objectClass->findChild(name);
 	if(implementation) return implementation;
 	return 0;
+}
+//-----------------------------------------------------------------------------
+//元ソースにはこの関数は有りませんが、共通処理をまとめるために追加しました。
+string CTinyJS::stack_trace(CScriptException* e) {
+	string msg;
+	msg += "Error ";
+	msg += e->text;
+#ifdef TINYJS_CALL_STACK
+	GSList/*<char*>*/* list = call_stack;
+	int i = 0;
+	while(list) {
+		char buf[256];
+		msg += "\n";
+		msg += itoa(i, buf, 10);
+		msg += ": ";
+		msg += (char*)list->data;
+		i++;
+	}
+#endif//TINYJS_CALL_STACK
+	msg += " at ";
+	msg += lex->getLastPosition();
+	return msg;
 }

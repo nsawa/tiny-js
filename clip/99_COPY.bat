@@ -4,37 +4,29 @@ SET BATDIR=%~dp0
 IF "%CLIP%" NEQ "" (
   SET SRCDIR=%CLIP%\
 ) ELSE (
-  SET SRCDIR=C:\Home\Share\Piece\clip\
+REM  SET SRCDIR=C:\Home\Share\Piece\clip\
+  SET SRCDIR=..\..\clip\
 )
 
-COPY	%SRCDIR%clipdlst.c
-COPY	%SRCDIR%clipdlst.h
+REM //--------------------------------------------------------------------------
+REM Unfortunately GOTO can not be used in FOR, so it seems to be the only way to handle it as follows.
+REM Reference URL: http://fpcu.on.coocan.jp/dosvcmd/bbs/log/cat3/for_in_do/4-1324.html
+FOR %%i IN (*.c *.h) DO (
+	IF "%%i" NEQ "clip.h" (
+		IF "%%i" NEQ "extclip.h" (
+			IF "%%i" NEQ "extclip.c" (
+				ECHO %SRCDIR%\%%i
+				COPY %SRCDIR%\%%i
+				IF ERRORLEVEL 1 GOTO :L_ERR
+			)
+		)
+	)
+)
 
-COPY	%SRCDIR%cliphash.c
-COPY	%SRCDIR%cliphash.h
+REM //--------------------------------------------------------------------------
+EXIT /B
 
-COPY	%SRCDIR%clipsort.c
-COPY	%SRCDIR%clipsort.h
-
-COPY	%SRCDIR%clipstl.c
-COPY	%SRCDIR%clipstl.h
-
-COPY	%SRCDIR%clipstr.c
-COPY	%SRCDIR%clipstr.h
-
-COPY	%SRCDIR%garray.c
-COPY	%SRCDIR%garray.h
-
-COPY	%SRCDIR%ght_hash_table.c
-COPY	%SRCDIR%ght_hash_table.h
-
-COPY	%SRCDIR%gslist.c
-COPY	%SRCDIR%gslist.h
-
-COPY	%SRCDIR%gstring.c
-COPY	%SRCDIR%gstring.h
-
-COPY	%SRCDIR%strv.c
-COPY	%SRCDIR%strv.h
-
-TIMEOUT 3
+REM //--------------------------------------------------------------------------
+:L_ERR
+ECHO ###An error occurred.
+EXIT /B 1

@@ -140,32 +140,24 @@ static void scArrayContains(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
 }
 static void scArrayRemove(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
 	CScriptVar* obj = v->getParameter("obj");
-	vector<int> removedIndices;
-	GSList* list;
-	//remove
-	list = v->getParameter("this")->firstChild;
-	while(list) {
-		CScriptVarLink* l = (CScriptVarLink*)list->data;
-		if(l->var->equals(obj)) {
-			removedIndices.push_back(l->getIntName());
-		}
-		list = list->next;
-	}
-	//renumber
-	list = v->getParameter("this")->firstChild;
-	while(list) {
-		CScriptVarLink* l = (CScriptVarLink*)list->data;
-		int n = l->getIntName();
-		int newn = n;
-		for(int i = 0; i < removedIndices.size(); i++) {
-			if(n >= removedIndices[i]) {
-				newn--;
+	CScriptVar* arr = v->getParameter("this");
+	GSList* list1 = arr->firstChild;
+	while(list1) {
+		CScriptVarLink* l1 = (CScriptVarLink*)list1->data;
+		list1 = list1->next;	//「arr->removeLink(l1)」によってlist1が開放される可能性が有るので予め次へ進めておく。
+		if(l1->var->equals(obj)) {
+			int i1 = l1->getIntName();
+			arr->removeLink(l1);	//オリジナル版のTinyJSはこの処理を忘れていないか?
+			{
+				GSList* list2 = arr->firstChild;
+				while(list2) {
+					CScriptVarLink* l2 = (CScriptVarLink*)list2->data;
+					int i2 = l2->getIntName();
+					if(i2 > i1) { l2->setIntName(i2 - 1); }
+					list2 = list2->next;	//こちらは開放される可能性は無いので最後に次へ進めて問題無い。
+				}
 			}
 		}
-		if(newn != n) {
-			l->setIntName(newn);
-		}
-		list = list->next;
 	}
 }
 static void scArrayJoin(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {

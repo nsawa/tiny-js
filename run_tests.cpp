@@ -131,10 +131,14 @@ int main(int argc, char** argv) {
 		printf("    ./run_tests test.js    : run just one test\n");
 		result = EXIT_FAILURE;	//異常終了(1)とする。
 	}
-	//異常終了,且つ,出力がリダイレクトされていなければ、キー入力を待つ。(VisualStudioからデバッグ実行された場合を想定して)
-//	if(result && _isatty(fileno(stdin))) {
-		printf("続行するには何かキーを押してください . . .");	//PAUSEコマンドと同じメッセージにした。
-		_getch();
-//	}
+	//現在のプロセスがデバッガのコンテキストで実行されてたら…
+	if(IsDebuggerPresent()) {
+		//標準出力がリダイレクトされていなければ…
+		if(_isatty(fileno(stdout))) {
+			//キー入力を待つ。(デバッガ環境でDOS窓がすぐに閉じて結果が確認しづらい問題を回避するためです。)
+			printf("続行するには何かキーを押してください . . .");	//PAUSEコマンドと同じメッセージにした。
+			_getch();
+		}
+	}
 	return result;
 }
