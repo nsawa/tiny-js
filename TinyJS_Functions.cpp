@@ -30,7 +30,7 @@ static void scMathRand(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
 static void scMathRandInt(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
 	int min = v->getParameter("min")->getInt();
 	int max = v->getParameter("max")->getInt();
-	int val = min + (int)(rand()%(1+max-min));
+	int val = min + (rand() % (1 + max - min));
 	v->getReturnVar()->setInt(val);
 }
 static void scCharToInt(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {

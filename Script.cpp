@@ -63,7 +63,5 @@ int main(int argc, char** argv) {
 			printf("ERROR: %s\n", e->text.c_str());
 		}
 	}
-	//インタプリタを削除する。
-	delete tinyJS;
 	return 0;	//もし途中でエラーが発生していても、当プログラムは常に正常終了(0)を返す。
 }

@@ -4,6 +4,7 @@
 #define STRICT
 #include <windows.h>
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#define _USE_MATH_DEFINES
 #include <assert.h>
 #include <ctype.h>
 #include <math.h>

@@ -10,24 +10,17 @@
 //	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
 //	IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-#include <math.h>
-#include <cstdlib>
-#include <sstream>
 #include "TinyJS.h"
 #include "TinyJS_Functions.h"
 #include "TinyJS_MathFunctions.h"
 using namespace std;
 //-----------------------------------------------------------------------------
-#define k_E			exp(1.0)
-#define k_PI			3.1415926535897932384626433832795
-
-#define F_ABS(a)		((a)>=0 ? (a) : (-(a)))
-#define F_MIN(a,b)		((a)>(b) ? (b) : (a))
-#define F_MAX(a,b)		((a)>(b) ? (a) : (b))
-#define F_SGN(a)		((a)>0 ? 1 : ((a)<0 ? -1 : 0))
-#define F_RNG(a,min,max)	((a)<(min) ? min : ((a)>(max) ? max : a))
-#define F_ROUND(a)		((a)>0 ? (int) ((a)+0.5) : (int) ((a)-0.5))
-
+#define F_ABS(a)		((a) >= 0 ? (a) : -(a))
+#define F_MIN(a, b)		((a) > (b) ? (b) : (a))
+#define F_MAX(a, b)		((a) > (b) ? (a) : (b))
+#define F_SGN(a)		((a) > 0 ? 1 : ((a) < 0 ? -1 : 0))
+#define F_RNG(a, min, max)	((a) < (min) ? min : ((a) > (max) ? max : a))
+#define F_ROUND(a)		((a) > 0 ? (int)((a) + 0.5) : (int)((a) - 0.5))
 //CScriptVar shortcut macro.
 #define scIsInt(a)		(v->getParameter(a)->isInt())
 #define scIsDouble(a)		(v->getParameter(a)->isDouble())
@@ -86,15 +79,15 @@ static void scMathSign(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
 }
 //Math.PI() - Returns PI value.
 static void scMathPI(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
-	scReturnDouble(k_PI);
+	scReturnDouble(M_PI);
 }
 //Math.toDegrees(a) - Returns degree value of a given angle in radians.
 static void scMathToDegrees(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
-	scReturnDouble((180.0/k_PI)*(scGetDouble("a")));
+	scReturnDouble((180.0/M_PI)*(scGetDouble("a")));
 }
 //Math.toRadians(a) - Returns radians value of a given angle in degrees.
 static void scMathToRadians(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
-	scReturnDouble((k_PI/180.0)*(scGetDouble("a")));
+	scReturnDouble((M_PI/180.0)*(scGetDouble("a")));
 }
 //Math.sin(a) - Returns trig. sine of given angle in radians.
 static void scMathSin(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
@@ -146,7 +139,7 @@ static void scMathATanh(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
 }
 //Math.E() - Returns E Neplero value.
 static void scMathE(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
-	scReturnDouble(k_E);
+	scReturnDouble(M_E);
 }
 //Math.log(a) - Returns natural logaritm (base E) of given value.
 static void scMathLog(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {

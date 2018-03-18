@@ -47,8 +47,8 @@ static int run_test(const char* fileName) {
 		printf("Unable to open file! '%s'\n", fileName);
 		return 0;	//失敗(0)
 	}
-	char* buffer = new (GC) char[size + 1];
-	int actualRead = (int)fread(buffer, 1, size, fp);
+	char* buffer = (char*)malloc(size + 1);
+	int actualRead = fread(buffer, 1, size, fp);
 	buffer[actualRead] = 0;
 	fclose(fp);
 	//インタプリタを作成する。
@@ -82,19 +82,17 @@ static int run_test(const char* fileName) {
 		}
 		printf("FAIL - symbols written to %s\n", buf);
 	}
-	//インタプリタを削除する。
-	delete tinyJS;
-	//スクリプトファイルを読み込んだバッファを開放する。
-	delete [] buffer;
 	//テスト結果を返す。
 	return pass;
 }
 //-----------------------------------------------------------------------------
 int main(int argc, char** argv) {
 	int result;
-	//メモリリーク検出を開始する。
-	putenv("GC_LOG_FILE=CON");
-	GC_set_find_leak(1);
+//{{削除
+//	//メモリリーク検出を開始する。
+//	putenv("GC_LOG_FILE=CON");
+//	GC_set_find_leak(1);
+//}}削除
 	//引数が指定されていなければ…
 	if(argc == (1 + 0)) {
 		//テスト番号1から、最大でも999まで…
@@ -109,8 +107,10 @@ int main(int argc, char** argv) {
 			//テストを実行し、テスト成功ならばテスト成功数を増やす。
 			if(run_test(buf)) { passed++; }
 			count++;	//テスト実行数を増やす。
-			//メモリリークを検出する。
-			CHECK_LEAKS();
+//{{削除
+//			//メモリリークを検出する。
+//			CHECK_LEAKS();
+//}}削除
 		}
 		//テスト実行数、テスト成功数、テスト失敗数を表示する。
 		printf("Done. %d tests, %d pass, %d fail\n", count, passed, count - passed);
@@ -119,8 +119,10 @@ int main(int argc, char** argv) {
 	} else if(argc == (1 + 1)) {
 		//指定されたスクリプトを実行する。
 		int passed = run_test(argv[1]);
-		//メモリリークを検出する。
-		CHECK_LEAKS();
+//{{削除
+//		//メモリリークを検出する。
+//		CHECK_LEAKS();
+//}}削除
 		result = !passed;	//テスト成功(1)ならば、正常終了(0)とする。
 	//引数が二個以上指定されていたら…
 	} else {

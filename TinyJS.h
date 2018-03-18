@@ -31,19 +31,14 @@ public:
 		m_p = strdup(s.m_p);
 	}
 	string& operator =(const string& s) {	//代入演算子
-		char* new_p = strdup(s.m_p);
-		free(m_p);	//エリアスセーフ
-		m_p = new_p;
+		m_p = strdup(s.m_p);
 		return *this;
-	}
-	~string() {
-		free(m_p);
 	}
 	const char* c_str() const {
 		return m_p;
 	}
 	int length() const {
-		return (int)strlen(m_p);
+		return strlen(m_p);
 	}
 	int find(int c, int i = 0) const {
 		char s[2] = { (char)c, '\0' };
@@ -52,7 +47,7 @@ public:
 	int find(const char* p, int i = 0) const {
 		assert((unsigned)i <= strlen(m_p));
 		p = strstr(m_p + i, p);
-		return p ? (int)(p - m_p) : -1;
+		return p ? (p - m_p) : -1;
 	}
 	int find(const string& s, int i = 0) const {
 		return find(s.c_str(), i);
@@ -60,7 +55,6 @@ public:
 	string substr(int i, int n = -1) const {
 		assert((unsigned)i <= strlen(m_p));
 		string t;
-		free(t.m_p);	//忘れないで!!
 		if(n == -1) {
 			t.m_p = strdup(m_p + i);
 		} else {
@@ -73,7 +67,6 @@ public:
 		return m_p[i];
 	}
 	void clear() {
-		free(m_p);
 		m_p = strdup("");
 	}
 	string& operator +=(int c) {
@@ -204,9 +197,7 @@ public:
 //*****************************************************************************
 class CScriptLex : public gc_cleanup {
 public:
-	CScriptLex(const char* input);
-	CScriptLex(CScriptLex* owner, int startChar, int endChar);
-	~CScriptLex();
+	CScriptLex(const char* input, int startChar, int endChar);
 
 	int	tk;		//The type of the token that we have.
 	string	tkStr;		//Data contained in the token we have here.
@@ -226,15 +217,14 @@ public:
 private:
 	//When we go into a loop, we use getSubLex() to get a lexer for just the sub-part of the relevant string.
 	//This doesn't re-allocate and copy the string, but instead copies the data pointer and sets dataOwned to false, and dataStart/dataEnd to the relevant things.
-	char*	data;			//Data string to get tokens from.
-	bool	dataOwned;		//Do we own this data string?
-	int	dataStart, dataEnd;	//Start and end position in data string.
-	int	dataPos;		//Position in data (we CAN go past the end of the string here)
-	int	currCh, nextCh;
-	int	tokenLastEnd;		//Position in the data at the last character of the last token.
+	const char*	data;			//Data string to get tokens from.
+	int		dataStart, dataEnd;	//Start and end position in data string.
+	int		dataPos;		//Position in data (we CAN go past the end of the string here)
+	int		currCh, nextCh;
+	int		tokenLastEnd;		//Position in the data at the last character of the last token.
 
 	void getNextCh();
-	void getNextToken();		//Get the text token from our text string.
+	void getNextToken();	//Get the text token from our text string.
 };
 //*****************************************************************************
 //	CScriptVarLink
@@ -243,7 +233,6 @@ class CScriptVarLink : public gc_cleanup {
 public:
 	CScriptVarLink(CScriptVar* v, const char* name = TINYJS_TEMP_NAME);
 	CScriptVarLink(const CScriptVarLink& link);	//Copy constructor.
-	~CScriptVarLink();
 
 	string			name;
 	CScriptVar*		var;
@@ -317,24 +306,13 @@ public:
 	void setCallback(TinyJS_Callback* callback, void* userdata);	//Set the callback for native functions.
 
 	GSList/*<CScriptVarLink*>*/*	firstChild;
-
-	//For memory management/garbage collection.
-	CScriptVar* ref();				//Add reference to this variable.
-	void unref();					//Remove a reference, and delete this variable if required.
-//{{削除:明らかに不要なので削除。外部から参照カウントが見られるのは害にしかならない。
-//	int getRefs();					//Get the number of references to this script variable.
-//}}削除:明らかに不要なので削除。外部から参照カウントが見られるのは害にしかならない。
 private:
-	int				refs;		//The number of references held to this - used for garbage collection.
-
 	int				flags;		//The flags determine the type of the variable - int/double/string/etc.
 	double				doubleData;	//The contents of this variable if it is a double.
 	int				intData;	//The contents of this variable if it is an int.
 	string				data;		//The contents of this variable if it is a string.
 	TinyJS_Callback*		callback;	//Callback for native functions.
 	void*				userdata;	//User data passed as second argument to native functions.
-
-	~CScriptVar();					//明示的に削除出来ないように、デストラクタをprivateにした。unref()によってのみ削除出来る。
 
 	void init();					//Initialisation of data members.
 	void copySimpleData(CScriptVar* v);		//Copy the basic data and flags from the variable given, with no children. Should be used internally only - by copyValue and deepCopy.
@@ -347,7 +325,6 @@ private:
 class CTinyJS : public gc_cleanup {
 public:
 	CTinyJS();
-	~CTinyJS();
 
 	void execute(const char* code);
 	//Evaluate the given code and return a link to a javascript object, useful for(dangerous) JSON parsing.
@@ -370,10 +347,6 @@ public:
 
 	//Get the given variable specified by a path (var1.var2.etc), or return NULL.
 	CScriptVar* getScriptVariable(const char* path);
-//{{削除。この関数がNULLを返せるようにするために他の関数に色々無理が生じている。この関数を廃止して明示的にgetScriptVariable()を使うようにすれば自然になる。だいたい当関数はアプリケーション用に用意されたもののようで、ライブラリ内の実装においては使用されていなかった。
-//	//Get the value of the given variable, or return NULL.
-//	const string* getVariable(const char* path);
-//}}削除。この関数がNULLを返せるようにするために他の関数に色々無理が生じている。この関数を廃止して明示的にgetScriptVariable()を使うようにすれば自然になる。だいたい当関数はアプリケーション用に用意されたもののようで、ライブラリ内の実装においては使用されていなかった。
 	//Set the value of the given variable, return trur if it exists and gets set.
 	bool setVariable(const char* path, const char* varData);
 
