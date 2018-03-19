@@ -27,18 +27,18 @@
 //static const char code[] = "function myfunc(x,y) { return x+y; } var a=myfunc(1,2); print(a);";
 //-----------------------------------------------------------------------------
 //function print(str: string): void
-static void js_print(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
+static void js_print(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
 	printf("> %s\n", v->getParameter("str")->getString().c_str());
 }
 //-----------------------------------------------------------------------------
 //function dump(): void
-static void js_dump(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
+static void js_dump(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
 	tinyJS->trace();
 }
 //-----------------------------------------------------------------------------
 int main(int argc, char** argv) {
 	//インタプリタを作成する。
-	CTinyJS* tinyJS = new CTinyJS();
+	ST_TinyJS* tinyJS = new ST_TinyJS();
 	//関数を登録する。
 	registerFunctions(tinyJS);
 	registerMathFunctions(tinyJS);
@@ -48,7 +48,7 @@ int main(int argc, char** argv) {
 	try {
 		tinyJS->execute("var lets_quit = 0; function quit() { lets_quit = 1; }");
 		tinyJS->execute("print(\"Interactive mode... Type quit(); to exit, or print(...); to print something, or dump() to dump the symbol table!\");");
-	} catch(CScriptException* e) {
+	} catch(ST_TinyJS_Exception* e) {
 		printf("ERROR: %s\n", e->text.c_str());
 	}
 	//quit()関数が呼び出されるまで…
@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
 		//スクリプトを一行実行する。
 		try {
 			tinyJS->execute(buffer);
-		} catch(CScriptException* e) {
+		} catch(ST_TinyJS_Exception* e) {
 			printf("ERROR: %s\n", e->text.c_str());
 		}
 	}

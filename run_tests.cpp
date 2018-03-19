@@ -22,12 +22,12 @@
 #include <conio.h>	//_getch()
 //=============================================================================
 //function print(str: string): void
-static void js_print(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
+static void js_print(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
 	printf("> %s\n", v->getParameter("str")->getString().c_str());
 }
 //-----------------------------------------------------------------------------
 //function dump(): void
-static void js_dump(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
+static void js_dump(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
 	tinyJS->trace();
 }
 //-----------------------------------------------------------------------------
@@ -52,18 +52,18 @@ static int run_test(const char* fileName) {
 	buffer[actualRead] = 0;
 	fclose(fp);
 	//インタプリタを作成する。
-	CTinyJS* tinyJS = new CTinyJS();
+	ST_TinyJS* tinyJS = new ST_TinyJS();
 	//関数を登録する。
 	registerFunctions(tinyJS);
 	registerMathFunctions(tinyJS);
 	tinyJS->addNative("function print(str)", js_print, NULL);
 	tinyJS->addNative("function dump()",     js_dump,  NULL);
 	//グローバルオブジェクトに、テスト結果の初期値(0:失敗)を登録する。
-	tinyJS->root->addChild("result", new CScriptVar("0", TINYJS_SCRIPTVAR_INTEGER));
+	tinyJS->root->addChild("result", new ST_TinyJS_Var("0", TINYJS_VAR_NUMBER));
 	//スクリプトを実行する。
 	try {
 		tinyJS->execute(buffer);
-	} catch(CScriptException* e) {
+	} catch(ST_TinyJS_Exception* e) {
 		printf("ERROR: %s\n", e->text.c_str());
 	}
 	//テスト結果を取得する。

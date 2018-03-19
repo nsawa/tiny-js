@@ -21,153 +21,126 @@ using namespace std;
 #define F_SGN(a)		((a) > 0 ? 1 : ((a) < 0 ? -1 : 0))
 #define F_RNG(a, min, max)	((a) < (min) ? min : ((a) > (max) ? max : a))
 #define F_ROUND(a)		((a) > 0 ? (int)((a) + 0.5) : (int)((a) - 0.5))
-//CScriptVar shortcut macro.
-#define scIsInt(a)		(v->getParameter(a)->isInt())
-#define scIsDouble(a)		(v->getParameter(a)->isDouble())
-#define scGetInt(a)		(v->getParameter(a)->getInt())
-#define scGetDouble(a)		(v->getParameter(a)->getDouble())
-#define scReturnInt(a)		(v->getReturnVar()->setInt(a))
-#define scReturnDouble(a)	(v->getReturnVar()->setDouble(a))
+//ST_TinyJS_Var shortcut macro.
+#define scIsNumber(a)		(v->getParameter(a)->isNumber())
+#define scGetNumber(a)		(v->getParameter(a)->getNumber())
+#define scReturnNumber(a)	(v->getReturnVar()->setNumber(a))
 //-----------------------------------------------------------------------------
 //Math.abs(x) - Returns absolute of given value.
-static void scMathAbs(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
-	if(scIsInt("a")) {
-		scReturnInt(F_ABS(scGetInt("a")));
-	} else if(scIsDouble("a")) {
-		scReturnDouble(F_ABS(scGetDouble("a")));
-	}
+static void scMathAbs(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+	scReturnNumber(F_ABS(scGetNumber("a")));
 }
 //Math.round(a) - Returns nearest round of given value.
-static void scMathRound(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
-	if(scIsInt("a")) {
-		scReturnInt(F_ROUND(scGetInt("a")));
-	} else if(scIsDouble("a")) {
-		scReturnDouble(F_ROUND(scGetDouble("a")));
-	}
+static void scMathRound(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+	scReturnNumber(F_ROUND(scGetNumber("a")));
 }
 //Math.min(a,b) - Returns minimum of two given values.
-static void scMathMin(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
-	if((scIsInt("a")) && (scIsInt("b"))) {
-		scReturnInt(F_MIN(scGetInt("a"), scGetInt("b")));
-	} else {
-		scReturnDouble(F_MIN(scGetDouble("a"), scGetDouble("b")));
-	}
+static void scMathMin(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+	scReturnNumber(F_MIN(scGetNumber("a"), scGetNumber("b")));
 }
 //Math.max(a,b) - Returns maximum of two given values.
-static void scMathMax(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
-	if((scIsInt("a")) && (scIsInt("b"))) {
-		scReturnInt(F_MAX(scGetInt("a"), scGetInt("b")));
-	} else {
-		scReturnDouble(F_MAX(scGetDouble("a"), scGetDouble("b")));
-	}
+static void scMathMax(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+	scReturnNumber(F_MAX(scGetNumber("a"), scGetNumber("b")));
 }
 //Math.range(x,a,b) - Returns value limited between two given values.
-static void scMathRange(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
-	if((scIsInt("x"))) {
-		scReturnInt(F_RNG(scGetInt("x"), scGetInt("a"), scGetInt("b")));
-	} else {
-		scReturnDouble(F_RNG(scGetDouble("x"), scGetDouble("a"), scGetDouble("b")));
-	}
+static void scMathRange(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+	scReturnNumber(F_RNG(scGetNumber("x"), scGetNumber("a"), scGetNumber("b")));
 }
 //Math.sign(a) - Returns sign of given value (-1==negative,0=zero,1=positive).
-static void scMathSign(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
-	if(scIsInt("a")) {
-		scReturnInt(F_SGN(scGetInt("a")));
-	} else if(scIsDouble("a")) {
-		scReturnDouble(F_SGN(scGetDouble("a")));
-	}
+static void scMathSign(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+	scReturnNumber(F_SGN(scGetNumber("a")));
 }
 //Math.PI() - Returns PI value.
-static void scMathPI(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
-	scReturnDouble(M_PI);
+static void scMathPI(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+	scReturnNumber(M_PI);
 }
 //Math.toDegrees(a) - Returns degree value of a given angle in radians.
-static void scMathToDegrees(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
-	scReturnDouble((180.0/M_PI)*(scGetDouble("a")));
+static void scMathToDegrees(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+	scReturnNumber((180.0/M_PI)*(scGetNumber("a")));
 }
 //Math.toRadians(a) - Returns radians value of a given angle in degrees.
-static void scMathToRadians(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
-	scReturnDouble((M_PI/180.0)*(scGetDouble("a")));
+static void scMathToRadians(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+	scReturnNumber((M_PI/180.0)*(scGetNumber("a")));
 }
 //Math.sin(a) - Returns trig. sine of given angle in radians.
-static void scMathSin(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
-	scReturnDouble(sin(scGetDouble("a")));
+static void scMathSin(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+	scReturnNumber(sin(scGetNumber("a")));
 }
 //Math.asin(a) - Returns trig. arcsine of given angle in radians.
-static void scMathASin(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
-	scReturnDouble(asin(scGetDouble("a")));
+static void scMathASin(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+	scReturnNumber(asin(scGetNumber("a")));
 }
 //Math.cos(a) - Returns trig. cosine of given angle in radians.
-static void scMathCos(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
-	scReturnDouble(cos(scGetDouble("a")));
+static void scMathCos(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+	scReturnNumber(cos(scGetNumber("a")));
 }
 //Math.acos(a) - Returns trig. arccosine of given angle in radians.
-static void scMathACos(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
-	scReturnDouble(acos(scGetDouble("a")));
+static void scMathACos(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+	scReturnNumber(acos(scGetNumber("a")));
 }
 //Math.tan(a) - Returns trig. tangent of given angle in radians.
-static void scMathTan(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
-	scReturnDouble(tan(scGetDouble("a")));
+static void scMathTan(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+	scReturnNumber(tan(scGetNumber("a")));
 }
 //Math.atan(a) - Returns trig. arctangent of given angle in radians.
-static void scMathATan(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
-	scReturnDouble(atan(scGetDouble("a")));
+static void scMathATan(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+	scReturnNumber(atan(scGetNumber("a")));
 }
 //Math.sinh(a) - Returns trig. hyperbolic sine of given angle in radians.
-static void scMathSinh(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
-	scReturnDouble(sinh(scGetDouble("a")));
+static void scMathSinh(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+	scReturnNumber(sinh(scGetNumber("a")));
 }
 //Math.asinh(a) - Returns trig. hyperbolic arcsine of given angle in radians.
-static void scMathASinh(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
-	scReturnDouble(asinh(scGetDouble("a")));
+static void scMathASinh(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+	scReturnNumber(asinh(scGetNumber("a")));
 }
 //Math.cosh(a) - Returns trig. hyperbolic cosine of given angle in radians.
-static void scMathCosh(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
-	scReturnDouble(cosh(scGetDouble("a")));
+static void scMathCosh(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+	scReturnNumber(cosh(scGetNumber("a")));
 }
 //Math.acosh(a) - Returns trig. hyperbolic arccosine of given angle in radians.
-static void scMathACosh(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
-	scReturnDouble(acosh(scGetDouble("a")));
+static void scMathACosh(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+	scReturnNumber(acosh(scGetNumber("a")));
 }
 //Math.tanh(a) - Returns trig. hyperbolic tangent of given angle in radians.
-static void scMathTanh(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
-	scReturnDouble(tanh(scGetDouble("a")));
+static void scMathTanh(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+	scReturnNumber(tanh(scGetNumber("a")));
 }
 //Math.atan(a) - Returns trig. hyperbolic arctangent of given angle in radians.
-static void scMathATanh(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
-	scReturnDouble(atan(scGetDouble("a")));
+static void scMathATanh(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+	scReturnNumber(atan(scGetNumber("a")));
 }
 //Math.E() - Returns E Neplero value.
-static void scMathE(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
-	scReturnDouble(M_E);
+static void scMathE(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+	scReturnNumber(M_E);
 }
 //Math.log(a) - Returns natural logaritm (base E) of given value.
-static void scMathLog(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
-	scReturnDouble(log(scGetDouble("a")));
+static void scMathLog(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+	scReturnNumber(log(scGetNumber("a")));
 }
 //Math.log10(a) - Returns logaritm(base 10) of given value.
-static void scMathLog10(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
-	scReturnDouble(log10(scGetDouble("a")));
+static void scMathLog10(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+	scReturnNumber(log10(scGetNumber("a")));
 }
 //Math.exp(a) - Returns e raised to the power of a given number.
-static void scMathExp(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
-	scReturnDouble(exp(scGetDouble("a")));
+static void scMathExp(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+	scReturnNumber(exp(scGetNumber("a")));
 }
 //Math.pow(a,b) - Returns the result of a number raised to a power (a)^(b).
-static void scMathPow(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
-	scReturnDouble(pow(scGetDouble("a"), scGetDouble("b")));
+static void scMathPow(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+	scReturnNumber(pow(scGetNumber("a"), scGetNumber("b")));
 }
 //Math.sqr(a) - Returns square of given value.
-static void scMathSqr(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
-	scReturnDouble((scGetDouble("a") * scGetDouble("a")));
+static void scMathSqr(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+	scReturnNumber((scGetNumber("a") * scGetNumber("a")));
 }
 //Math.sqrt(a) - Returns square root of given value.
-static void scMathSqrt(CTinyJS* tinyJS, CScriptVar* v, void* userdata) {
-	scReturnDouble(sqrt(scGetDouble("a")));
+static void scMathSqrt(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+	scReturnNumber(sqrt(scGetNumber("a")));
 }
 //-----------------------------------------------------------------------------
 //Register Functions.
-void registerMathFunctions(CTinyJS* tinyJS) {
+void registerMathFunctions(ST_TinyJS* tinyJS) {
 	//Math and Trigonometry functions.
 	tinyJS->addNative("function Math.abs(a)",       scMathAbs,       NULL);
 	tinyJS->addNative("function Math.round(a)",     scMathRound,     NULL);
