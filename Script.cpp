@@ -28,7 +28,7 @@
 //-----------------------------------------------------------------------------
 //function print(str: string): void
 static void js_print(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
-	printf("> %s\n", v->getParameter("str")->getString().c_str());
+	printf("> %s\n", v->getParameter("str")->getString());
 }
 //-----------------------------------------------------------------------------
 //function dump(): void
@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
 		tinyJS->execute("var lets_quit = 0; function quit() { lets_quit = 1; }");
 		tinyJS->execute("print(\"Interactive mode... Type quit(); to exit, or print(...); to print something, or dump() to dump the symbol table!\");");
 	} catch(ST_TinyJS_Exception* e) {
-		printf("ERROR: %s\n", e->text.c_str());
+		printf("ERROR: %s\n", e->text);
 	}
 	//quit()関数が呼び出されるまで…
 	while(tinyJS->evaluate("lets_quit") == "0") {
@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
 		try {
 			tinyJS->execute(buffer);
 		} catch(ST_TinyJS_Exception* e) {
-			printf("ERROR: %s\n", e->text.c_str());
+			printf("ERROR: %s\n", e->text);
 		}
 	}
 	return 0;	//もし途中でエラーが発生していても、当プログラムは常に正常終了(0)を返す。

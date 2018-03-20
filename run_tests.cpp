@@ -23,7 +23,7 @@
 //=============================================================================
 //function print(str: string): void
 static void js_print(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
-	printf("> %s\n", v->getParameter("str")->getString().c_str());
+	printf("> %s\n", v->getParameter("str")->getString());
 }
 //-----------------------------------------------------------------------------
 //function dump(): void
@@ -47,9 +47,8 @@ static int run_test(const char* fileName) {
 		printf("Unable to open file! '%s'\n", fileName);
 		return 0;	//失敗(0)
 	}
-	char* buffer = (char*)malloc(size + 1);
-	int actualRead = fread(buffer, 1, size, fp);
-	buffer[actualRead] = 0;
+	char* buffer = (char*)calloc(size + 1/*nul*/, 1);
+	fread(buffer, 1, size, fp);
 	fclose(fp);
 	//インタプリタを作成する。
 	ST_TinyJS* tinyJS = new ST_TinyJS();
@@ -64,7 +63,7 @@ static int run_test(const char* fileName) {
 	try {
 		tinyJS->execute(buffer);
 	} catch(ST_TinyJS_Exception* e) {
-		printf("ERROR: %s\n", e->text.c_str());
+		printf("ERROR: %s\n", e->text);
 	}
 	//テスト結果を取得する。
 	bool pass = tinyJS->root->getParameter("result")->getBool();
@@ -72,12 +71,11 @@ static int run_test(const char* fileName) {
 		printf("PASS\n");
 	} else {
 		//失敗ならば、ログファイルを生成する。
-		char buf[256];
-		snprintf(buf, sizeof buf, "%s.fail.js", fileName);
+		const char* buf = strdup_printf("%s.fail.js", fileName);
 		FILE* f = fopen(buf, "wt");
 		if(f) {
-			string symbols = tinyJS->root->getJSON();
-			fprintf(f, "%s", symbols.c_str());
+			const char* symbols = tinyJS->root->getJSON();
+			fprintf(f, "%s", symbols);
 			fclose(f);
 		}
 		printf("FAIL - symbols written to %s\n", buf);
@@ -99,8 +97,7 @@ int main(int argc, char** argv) {
 		int test_num, count = 0, passed = 0;	//test_num:テスト番号,count=テスト実行数,passed=テスト成功数
 		for(test_num = 1; test_num <= 999; test_num++) {
 			//テスト番号に対応する、スクリプトファイル名を作成する。
-			char buf[256];
-			snprintf(buf, sizeof buf, "tests/test%03d.js", test_num);
+			const char* buf = strdup_printf("tests/test%03d.js", test_num);
 			//スクリプトファイルが存在しなければ、テストを終了する。
 			struct stat st;
 			if(stat(buf, &st)) { break; }	//Check if the file exists - if not, assume we're at the end of our tests.

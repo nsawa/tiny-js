@@ -15,30 +15,30 @@
 //	Utils
 //*****************************************************************************
 //Convert the given string into a quoted string suitable for javascript.
-static string getJSString(const char* str) {
-	string out;
+static const char* getJSString(const char* str) {
+	GString* out = g_string_new(NULL);
 	int c;
 	while((c = *str++) != '\0') {
 		switch(c) {
-		case '\t': out += "\\t";  break;	//┐
-		case '\n': out += "\\n";  break;	//├頻繁に使う制御文字のエスケープシーケンスだけ明示的に変換し、頻繁に使わない制御文字はその他の印字不可文字と共通で8進数形式で出力する事にした。
-		case '\r': out += "\\r";  break;	//┘
-		case '"':  out += "\\\""; break;
-		case '\\': out += "\\\\"; break;
+		case '\t': g_string_append(out, "\\t");  break;	//┐
+		case '\n': g_string_append(out, "\\n");  break;	//├頻繁に使う制御文字のエスケープシーケンスだけ明示的に変換し、頻繁に使わない制御文字はその他の印字不可文字と共通で8進数形式で出力する事にした。
+		case '\r': g_string_append(out, "\\r");  break;	//┘
+		case '"':  g_string_append(out, "\\\""); break;
+		case '\\': g_string_append(out, "\\\\"); break;
 		default:
 			{
 				if(isprint(c)) {
-					out += c;
+					g_string_append_c(out, c);
 				} else {
-					char buf[256];
-					snprintf(buf, sizeof buf, "\\%03o", (unsigned char)c);	//16進数形式は桁数制限が無く誤って後続の文字と繋がって解釈される恐れが有る。8進数形式は最大でも3桁までしか解釈されず左記の問題は生じない。8進数形式の方が安全なので8進数形式で出力する事にした。
-					out += buf;
+					g_string_append_printf(out, "\\%03o", (unsigned char)c);	//16進数形式は桁数制限が無く誤って後続の文字と繋がって解釈される恐れが有る。8進数形式は最大でも3桁までしか解釈されず左記の問題は生じない。8進数形式の方が安全なので8進数形式で出力する事にした。
 				}
 			}
 			break;
 		}
 	}
-	return "\"" + out + "\"";
+	g_string_prepend(out, "\"");
+	g_string_append( out, "\"");
+	return out->str;
 }
 //-----------------------------------------------------------------------------
 //strtod()は10進実数と16進整数を解釈するが、8進整数を解釈しないので、8進整数のみ明示的に変換する事にした。
@@ -92,20 +92,20 @@ void ST_TinyJS_Lex::reset() {
 //Lexical match wotsit.
 void ST_TinyJS_Lex::match(int expected_tk) {
 	if(tk != expected_tk) {
-		string errorString;
-		errorString += "Got ";
-		errorString += getTokenStr(tk);
-		errorString += " expected ";
-		errorString += getTokenStr(expected_tk);
-		errorString += " at ";
-		errorString += getPosition(tokenStart);
-		throw new ST_TinyJS_Exception(errorString.c_str());
+		GString* errorString = g_string_new(NULL);
+		g_string_append(errorString, "Got ");
+		g_string_append(errorString, getTokenStr(tk));
+		g_string_append(errorString, " expected ");
+		g_string_append(errorString, getTokenStr(expected_tk));
+		g_string_append(errorString, " at ");
+		g_string_append(errorString, getPosition(tokenStart));
+		throw new ST_TinyJS_Exception(errorString->str);
 	}
 	getNextToken();
 }
 //-----------------------------------------------------------------------------
 //Get the string representation of the given token.
-string ST_TinyJS_Lex::getTokenStr(int token) {
+const char* ST_TinyJS_Lex::getTokenStr(int token) {
 	switch(token) {
 	case TINYJS_LEX_EOF:              return "EOF";
 	//ID
@@ -151,13 +151,7 @@ string ST_TinyJS_Lex::getTokenStr(int token) {
 	case TINYJS_LEX_R_VAR:            return "var";
 	case TINYJS_LEX_R_WHILE:          return "while";
 	}
-	char buf[256];
-	if(isprint(token)) {
-		snprintf(buf, sizeof buf, "'%c'", token);
-	} else {
-		snprintf(buf, sizeof buf, "?[%d]", token);
-	}
-	return buf;
+	return strdup_printf((isprint(token) ? "'%c'" : "?[%d]"), token);
 }
 //-----------------------------------------------------------------------------
 void ST_TinyJS_Lex::getNextCh() {
@@ -173,25 +167,26 @@ void ST_TinyJS_Lex::getNextCh() {
 //-----------------------------------------------------------------------------
 //Get the text token from our text string.
 void ST_TinyJS_Lex::getNextToken() {
-//不要	tk = TINYJS_LEX_EOF;
-	tkStr.clear();
-	while(currCh && isspace(currCh)) { getNextCh(); }
-	//Newline comments.
-	if((currCh == '/') && (nextCh == '/')) {
-		while(currCh && currCh != '\n') { getNextCh(); }
-		getNextCh();	//'\n'の次へ進める。
-		getNextToken();
-		return;	//ここまで
-	}
-	//Block comments.
-	if((currCh == '/') && (nextCh == '*')) {
-		while(currCh && (currCh != '*' || nextCh != '/')) { getNextCh(); }
-		getNextCh();	//'*'の次へ進める。
-		getNextCh();	//'/'の次へ進める。
-		getNextToken();
-		return;	//ここまで
+	for(;;) {
+		//Skip whitespaces.
+		while(currCh && isspace(currCh)) { getNextCh(); }
+		//Newline comments.
+		if((currCh == '/') && (nextCh == '/')) {
+			while(currCh && currCh != '\n') { getNextCh(); }
+			getNextCh();	//'\n'の次へ進める。
+		//Block comments.
+		} else if((currCh == '/') && (nextCh == '*')) {
+			while(currCh && (currCh != '*' || nextCh != '/')) { getNextCh(); }
+			getNextCh();	//'*'の次へ進める。
+			getNextCh();	//'/'の次へ進める。
+		} else {
+			break;
+		}
 	}
 	//Record beginning of this token.
+	GString* buf = g_string_new(NULL);
+//不要	tk    = TINYJS_LEX_EOF;
+	tkStr = "";
 	tokenStart = dataPos - 2;
 	//
 	//	～■■□～
@@ -201,65 +196,68 @@ void ST_TinyJS_Lex::getNextToken() {
 	//	　└── currCh: dataPos - 2 = tokenStart
 	//
 	//Tokens.
-	if(iscsymf(currCh)) {	//予約語,又は,ID
+	//予約語,又は,ID
+	if(iscsymf(currCh)) {
 		while(iscsym(currCh)) {
-			tkStr += currCh;
+			g_string_append_c(buf, currCh);
 			getNextCh();
 		}
-		     if(tkStr == "break")     { tk = TINYJS_LEX_R_BREAK; }
-		else if(tkStr == "continue")  { tk = TINYJS_LEX_R_CONTINUE; }
-		else if(tkStr == "do")        { tk = TINYJS_LEX_R_DO; }
-		else if(tkStr == "else")      { tk = TINYJS_LEX_R_ELSE; }
-		else if(tkStr == "false")     { tk = TINYJS_LEX_R_FALSE; }
-		else if(tkStr == "for")       { tk = TINYJS_LEX_R_FOR; }
-		else if(tkStr == "function")  { tk = TINYJS_LEX_R_FUNCTION; }
-		else if(tkStr == "if")        { tk = TINYJS_LEX_R_IF; }
-		else if(tkStr == "new")       { tk = TINYJS_LEX_R_NEW; }
-		else if(tkStr == "null")      { tk = TINYJS_LEX_R_NULL; }
-		else if(tkStr == "return")    { tk = TINYJS_LEX_R_RETURN; }
-		else if(tkStr == "true")      { tk = TINYJS_LEX_R_TRUE; }
-		else if(tkStr == "undefined") { tk = TINYJS_LEX_R_UNDEFINED; }
-		else if(tkStr == "var")       { tk = TINYJS_LEX_R_VAR; }
-		else if(tkStr == "while")     { tk = TINYJS_LEX_R_WHILE; }
-		else                          { tk = TINYJS_LEX_ID; }
-	} else if(isdigit(currCh)) {	//数値リテラル
+		     if(!strcmp(buf->str, "break"))     { tk = TINYJS_LEX_R_BREAK; }
+		else if(!strcmp(buf->str, "continue"))  { tk = TINYJS_LEX_R_CONTINUE; }
+		else if(!strcmp(buf->str, "do"))        { tk = TINYJS_LEX_R_DO; }
+		else if(!strcmp(buf->str, "else"))      { tk = TINYJS_LEX_R_ELSE; }
+		else if(!strcmp(buf->str, "false"))     { tk = TINYJS_LEX_R_FALSE; }
+		else if(!strcmp(buf->str, "for"))       { tk = TINYJS_LEX_R_FOR; }
+		else if(!strcmp(buf->str, "function"))  { tk = TINYJS_LEX_R_FUNCTION; }
+		else if(!strcmp(buf->str, "if"))        { tk = TINYJS_LEX_R_IF; }
+		else if(!strcmp(buf->str, "new"))       { tk = TINYJS_LEX_R_NEW; }
+		else if(!strcmp(buf->str, "null"))      { tk = TINYJS_LEX_R_NULL; }
+		else if(!strcmp(buf->str, "return"))    { tk = TINYJS_LEX_R_RETURN; }
+		else if(!strcmp(buf->str, "true"))      { tk = TINYJS_LEX_R_TRUE; }
+		else if(!strcmp(buf->str, "undefined")) { tk = TINYJS_LEX_R_UNDEFINED; }
+		else if(!strcmp(buf->str, "var"))       { tk = TINYJS_LEX_R_VAR; }
+		else if(!strcmp(buf->str, "while"))     { tk = TINYJS_LEX_R_WHILE; }
+		else                                    { tk = TINYJS_LEX_ID; }
+	//数値リテラル
+	} else if(isdigit(currCh)) {
 		bool isHex = false;
 		if(currCh == '0') {
-			tkStr += currCh;		//'0'を追加する。
-			getNextCh();			//'0'の次へ進める。
+			g_string_append_c(buf, currCh);		//'0'を追加する。
+			getNextCh();				//'0'の次へ進める。
 			if(((currCh == 'x') || (currCh == 'X')) && isxdigit(nextCh)/*この条件忘れないで!!0xの後に少なくとも一文字の16進数が必要!!*/) {
 				isHex = true;
-				tkStr += currCh;	//'x',又は,'X'を追加する。
-				getNextCh();		//'x',又は,'X'の次へ進める。
+				g_string_append_c(buf, currCh);	//'x',又は,'X'を追加する。
+				getNextCh();			//'x',又は,'X'の次へ進める。
 			}
 		}
 		tk = TINYJS_LEX_L_NUM;
 		while(isdigit(currCh) || (isHex && isxdigit(currCh))) {
-			tkStr += currCh;
+			g_string_append_c(buf, currCh);
 			getNextCh();
 		}
 		if(!isHex && (currCh == '.')) {
-			tkStr += currCh;		//'.'を追加する。
-			getNextCh();			//'.'の次へ進める。
+			g_string_append_c(buf, currCh);		//'.'を追加する。
+			getNextCh();				//'.'の次へ進める。
 			while(isdigit(currCh)) {
-				tkStr += currCh;
+				g_string_append_c(buf, currCh);
 				getNextCh();
 			}
 		}
 		//Do fancy e-style floating point.
 		if(!isHex && ((currCh == 'e') || (currCh == 'E'))) {
-			tkStr += currCh;
+			g_string_append_c(buf, currCh);
 			getNextCh();
 			if(currCh == '-') {
-				tkStr += currCh;	//'-'を追加する。
-				getNextCh();		//'-'の次へ進める。
+				g_string_append_c(buf, currCh);	//'-'を追加する。
+				getNextCh();			//'-'の次へ進める。
 			}
 			while(isdigit(currCh)) {
-				tkStr += currCh;
+				g_string_append_c(buf, currCh);
 				getNextCh();
 			}
 		}
-	} else if((currCh == '"') || (currCh == '\'')) {	//文字列リテラル
+	//文字列リテラル
+	} else if((currCh == '"') || (currCh == '\'')) {
 		const int quotCh = currCh;
 		tk = TINYJS_LEX_L_STR;
 		getNextCh();	//'"',又は,"'"の次へ進める。
@@ -267,41 +265,42 @@ void ST_TinyJS_Lex::getNextToken() {
 			if(currCh == '\\') {
 				getNextCh();	//'\'の次へ進める。
 				switch(currCh) {
-				case 't':  tkStr += '\t'; break;	//┐
-				case 'n':  tkStr += '\n'; break;	//├頻繁に使う制御文字のエスケープシーケンスだけ対応した。頻繁に使わない制御文字はその他の印字不可文字と共通で8進数形式,又は,16進数形式での入力を前提とする。もし不足ならば追加しろ。
-				case 'r':  tkStr += '\r'; break;	//┘
-				case '\\': tkStr += '\\'; break;
+				case 't':  g_string_append_c(buf, '\t'); break;	//┐
+				case 'n':  g_string_append_c(buf, '\n'); break;	//├頻繁に使う制御文字のエスケープシーケンスだけ対応した。頻繁に使わない制御文字はその他の印字不可文字と共通で8進数形式,又は,16進数形式での入力を前提とする。もし不足ならば追加しろ。
+				case 'r':  g_string_append_c(buf, '\r'); break;	//┘
+				case '\\': g_string_append_c(buf, '\\'); break;
 				default:
 					//Hex digits.
 					if(((currCh == 'x') || (currCh == 'X')) && isxdigit(nextCh)/*この条件忘れないで!!\xの後に少なくとも一文字の16進数が必要!!*/) {
-						string buf;
+						GString* tmp = g_string_new(NULL);
 						for(;;) {		//C言語の文字列リテラルの仕様では、"\x????～"には桁数制限が無い。JavaScriptでも同じなのかわからない。(※TODO:要確認)
 							getNextCh();	//初回は'x',又は,'X'の次へ進める。
 							if(!isxdigit(currCh)) { break; }
-							buf += currCh;
+							g_string_append_c(tmp, currCh);
 						}
-						tkStr += (char)strtoul(buf.c_str(), NULL, 16);
+						g_string_append_c(buf, (char)strtoul(tmp->str, NULL, 16));
 					//Octal digits.
 					} else if((currCh >= '0') && (currCh <= '7')) {
-						string buf;
-						while(buf.length() < 3) {	//C言語の文字列リテラルの仕様では、"\???"は1～3桁である。JavaScriptでも同じなのかわからない。(※TODO:要確認)
+						GString* tmp = g_string_new(NULL);
+						while(tmp->len < 3) {	//C言語の文字列リテラルの仕様では、"\???"は1～3桁である。JavaScriptでも同じなのかわからない。(※TODO:要確認)
 							if(!isxdigit(currCh)) { break; }
-							buf += currCh;
+							g_string_append_c(tmp, currCh);
 							getNextCh();
 						}
-						tkStr += (char)strtoul(buf.c_str(), NULL, 8);
+						g_string_append_c(buf, (char)strtoul(tmp->str, NULL, 8));
 					} else {
-						tkStr += currCh;
+						g_string_append_c(buf, currCh);
 					}
 					break;
 				}
 			} else {
-				tkStr += currCh;
+				g_string_append_c(buf, currCh);
 			}
 			getNextCh();
 		}
 		getNextCh();
-	} else {	//演算子,又は,EOF
+	//演算子,又は,EOF
+	} else {
 		tk = currCh;
 		if(tk) {
 			getNextCh();
@@ -388,16 +387,17 @@ void ST_TinyJS_Lex::getNextToken() {
 	//	　│└── currCh: dataPos - 2
 	//	　└───         dataPos - 3 = tokenEnd	tokenEndはトークンの最後の文字の位置を示す。トークンの最後の文字の次の位置ではない事に注意せよ。
 	//
+	tkStr = buf->str;	//忘れないで!!
 }
 //-----------------------------------------------------------------------------
 //Return a sub-string from the given position up until right now.
-string ST_TinyJS_Lex::getSubString(int lastPosition) {
+const char* ST_TinyJS_Lex::getSubString(int lastPosition) {
 	assert(lastPosition <= dataEnd);
 	int lastCharIdx = tokenLastEnd + 1;	//一つ前に取得したトークンの最後の文字の次の位置。
 	if(lastCharIdx <= dataEnd) {
-		return string(&data[lastPosition], lastCharIdx - lastPosition);
+		return strndup(data + lastPosition, lastCharIdx - lastPosition);
 	} else {
-		return string(&data[lastPosition],     dataEnd - lastPosition);	//※こちらになる事は起こり得ないのではないだろうか?(※TODO:要検討)
+		return strndup(data + lastPosition,     dataEnd - lastPosition);	//※こちらになる事は起こり得ないのではないだろうか?(※TODO:要検討)
 	}
 }
 //-----------------------------------------------------------------------------
@@ -413,12 +413,12 @@ ST_TinyJS_Lex* ST_TinyJS_Lex::getSubLex(int lastPosition) {
 }
 //-----------------------------------------------------------------------------
 //Return a string representing the position in lines and columns of the tokenLastEnd.
-string ST_TinyJS_Lex::getLastPosition() {
+const char* ST_TinyJS_Lex::getLastPosition() {
 	return ST_TinyJS_Lex::getPosition(tokenLastEnd);
 }
 //-----------------------------------------------------------------------------
 //Return a string representing the position in lines and columns of the character pos given.
-string ST_TinyJS_Lex::getPosition(int pos) {
+const char* ST_TinyJS_Lex::getPosition(int pos) {
 	if(pos > dataEnd) { pos = dataEnd; }	//※起こり得ないのではないだろうか?(※TODO:要検討)
 	int line = 1, col = 1;
 	for(int i = 0; i < pos; i++) {
@@ -428,9 +428,7 @@ string ST_TinyJS_Lex::getPosition(int pos) {
 			col = 1;
 		}
 	}
-	char buf[256];
-	snprintf(buf, sizeof buf, "(line: %d, col: %d)", line, col);
-	return buf;
+	return strdup_printf("(line: %d, col: %d)", line, col);
 }
 //*****************************************************************************
 //	ST_TinyJS_VarLink
@@ -464,13 +462,12 @@ void ST_TinyJS_VarLink::replaceWith(ST_TinyJS_VarLink* l) {
 //-----------------------------------------------------------------------------
 //Get the name as an integer (for arrays).
 int ST_TinyJS_VarLink::getIntName() {
-	return atoi(name.c_str());
+	return atoi(name);
 }
 //-----------------------------------------------------------------------------
 //Set the name as an integer (for arrays).
 void ST_TinyJS_VarLink::setIntName(int n) {
-	char buf[256];
-	snprintf(buf, sizeof buf, "%d", n);
+	const char* buf = strdup_printf("%d", n);
 	name = buf;
 }
 //*****************************************************************************
@@ -536,7 +533,7 @@ ST_TinyJS_VarLink* ST_TinyJS_Var::findChild(const char* name) {
 	GSList/*<ST_TinyJS_VarLink*>*/* list = firstChild;
 	while(list) {
 		ST_TinyJS_VarLink* l = (ST_TinyJS_VarLink*)list->data;
-		if(l->name.compare(name) == 0) { return l; }
+		if(!strcmp(l->name, name)) { return l; }
 		list = list->next;
 	}
 	return NULL;
@@ -551,10 +548,12 @@ ST_TinyJS_VarLink* ST_TinyJS_Var::findChildOrCreate(const char* name, int varTyp
 //-----------------------------------------------------------------------------
 //Tries to find a child with the given path (separated by dots).
 ST_TinyJS_VarLink* ST_TinyJS_Var::findChildOrCreateByPath(const char* path) {
-	string sPath(path);
-	int p = sPath.find('.');
-	if(p == -1) { return findChildOrCreate(sPath.c_str()); }
-	return findChildOrCreate(sPath.substr(0, p).c_str(), TINYJS_VAR_OBJECT)->var->findChildOrCreateByPath(sPath.substr(p + 1).c_str());
+	const char* p = strchr(path, '.');
+	if(p) {
+		return findChildOrCreate(strndup(path, p - path), TINYJS_VAR_OBJECT)->var->findChildOrCreateByPath(p + 1/*'.'*/);
+	} else {
+		return findChildOrCreate(path);
+	}
 }
 //-----------------------------------------------------------------------------
 ST_TinyJS_VarLink* ST_TinyJS_Var::addChild(const char* name, ST_TinyJS_Var* v) {
@@ -597,8 +596,7 @@ void ST_TinyJS_Var::removeAllChildren() {
 //-----------------------------------------------------------------------------
 //The the value at an array index.
 ST_TinyJS_Var* ST_TinyJS_Var::getArrayIndex(int i) {
-	char buf[256];
-	snprintf(buf, sizeof buf, "%d", i);
+	const char* buf = strdup_printf("%d", i);
 	ST_TinyJS_VarLink* l = findChild(buf);
 	if(l) {
 		return l->var;
@@ -608,8 +606,7 @@ ST_TinyJS_Var* ST_TinyJS_Var::getArrayIndex(int i) {
 }
 //-----------------------------------------------------------------------------
 void ST_TinyJS_Var::setArrayIndex(int i, ST_TinyJS_Var* v) {
-	char buf[256];
-	snprintf(buf, sizeof buf, "%d", i);
+	const char* buf = strdup_printf("%d", i);
 	ST_TinyJS_VarLink* l = findChild(buf);
 	if(l) {
 		if(v->isUndefined()) {
@@ -634,7 +631,7 @@ int ST_TinyJS_Var::getArrayLength() {
 	while(list) {
 		ST_TinyJS_VarLink* l = (ST_TinyJS_VarLink*)list->data;
 		char* endptr;
-		int i = strtoul(l->name.c_str(), &endptr, 10);
+		int i = strtoul(l->name, &endptr, 10);
 		if(*endptr == '\0') {
 			if(i > ubound) { ubound = i; }
 		}
@@ -659,7 +656,7 @@ double ST_TinyJS_Var::getNumber() {
 	return 0;			//※本当は0とは限らないが…せめて文字列⇒数値変換ぐらいは実装すべきではないか?(※TODO:)
 }
 //-----------------------------------------------------------------------------
-string ST_TinyJS_Var::getString() {
+const char* ST_TinyJS_Var::getString() {
 	if(isNumber()) { return strdup_printf("%g", numData); }
 	if(isNull()) { return "null"; }
 	if(isUndefined()) { return "undefined"; }
@@ -747,35 +744,35 @@ ST_TinyJS_Var* ST_TinyJS_Var::mathsOp(ST_TinyJS_Var* v, int op) {
 		case TINYJS_LEX_O_LEQUAL: return new ST_TinyJS_Var(     da <=     db);
 		case '>':                 return new ST_TinyJS_Var(     da >      db);
 		case TINYJS_LEX_O_GEQUAL: return new ST_TinyJS_Var(     da >=     db);
-		default:throw new ST_TinyJS_Exception(("Operation " + ST_TinyJS_Lex::getTokenStr(op) + " not supported on the number datatype.").c_str());
+		default:throw new ST_TinyJS_Exception(strdup_printf("Operation %s not supported on the number datatype.", ST_TinyJS_Lex::getTokenStr(op)));
 		}
 	} else if(a->isArray()) {
 		//Just check pointers.
 		switch(op) {
 		case TINYJS_LEX_O_EQUAL:  return new ST_TinyJS_Var(a == b);
 		case TINYJS_LEX_O_NEQUAL: return new ST_TinyJS_Var(a != b);
-		default:throw new ST_TinyJS_Exception(("Operation " + ST_TinyJS_Lex::getTokenStr(op) + " not supported on the Array datatype.").c_str());
+		default:throw new ST_TinyJS_Exception(strdup_printf("Operation %s not supported on the Array datatype.", ST_TinyJS_Lex::getTokenStr(op)));
 		}
 	} else if(a->isObject()) {
 		//Just check pointers.
 		switch(op) {
 		case TINYJS_LEX_O_EQUAL:  return new ST_TinyJS_Var(a == b);
 		case TINYJS_LEX_O_NEQUAL: return new ST_TinyJS_Var(a != b);
-		default:throw new ST_TinyJS_Exception(("Operation " + ST_TinyJS_Lex::getTokenStr(op) + " not supported on the Object datatype.").c_str());
+		default:throw new ST_TinyJS_Exception(strdup_printf("Operation %s not supported on the Object datatype.", ST_TinyJS_Lex::getTokenStr(op)));
 		}
 	} else {
-		string da = a->getString();
-		string db = b->getString();
+		const char* da = a->getString();
+		const char* db = b->getString();
 		//Use strings.
 		switch(op) {
-		case '+':                 return new ST_TinyJS_Var((da +  db).c_str(), TINYJS_VAR_STRING);
-		case TINYJS_LEX_O_EQUAL:  return new ST_TinyJS_Var( da == db);
-		case TINYJS_LEX_O_NEQUAL: return new ST_TinyJS_Var( da != db);
-		case '<':                 return new ST_TinyJS_Var( da <  db);
-		case TINYJS_LEX_O_LEQUAL: return new ST_TinyJS_Var( da <= db);
-		case '>':                 return new ST_TinyJS_Var( da >  db);
-		case TINYJS_LEX_O_GEQUAL: return new ST_TinyJS_Var( da >= db);
-		default:throw new ST_TinyJS_Exception(("Operation " + ST_TinyJS_Lex::getTokenStr(op) + " not supported on the string datatype.").c_str());
+		case '+':                 return new ST_TinyJS_Var(strconcat(da, db, NULL), TINYJS_VAR_STRING);
+		case TINYJS_LEX_O_EQUAL:  return new ST_TinyJS_Var(strcmp(da, db) == 0);
+		case TINYJS_LEX_O_NEQUAL: return new ST_TinyJS_Var(strcmp(da, db) != 0);
+		case '<':                 return new ST_TinyJS_Var(strcmp(da, db) <  0);
+		case TINYJS_LEX_O_LEQUAL: return new ST_TinyJS_Var(strcmp(da, db) <= 0);
+		case '>':                 return new ST_TinyJS_Var(strcmp(da, db) >  0);
+		case TINYJS_LEX_O_GEQUAL: return new ST_TinyJS_Var(strcmp(da, db) >= 0);
+		default:throw new ST_TinyJS_Exception(strdup_printf("Operation %s not supported on the string datatype.", ST_TinyJS_Lex::getTokenStr(op)));
 		}
 	}
 }
@@ -800,12 +797,12 @@ void ST_TinyJS_Var::copyValue(ST_TinyJS_Var* v) {	//※TinyJS_Functions.cppのObje
 			ST_TinyJS_VarLink* l = (ST_TinyJS_VarLink*)list->data;
 			ST_TinyJS_Var* tmp;
 			//Don't copy the 'parent' object...
-			if(l->name != TINYJS_PROTOTYPE_CLASS) {
-				tmp = l->var->deepCopy();
-			} else {
+			if(!strcmp(l->name, TINYJS_PROTOTYPE_CLASS)) {	//TINYJS_PROTOTYPE_CLASSならば…
 				tmp = l->var;
+			} else {						//TINYJS_PROTOTYPE_CLASS以外ならば…
+				tmp = l->var->deepCopy();
 			}
-			addChild(l->name.c_str(), tmp);
+			addChild(l->name, tmp);
 			list = list->next;
 		}
 	} else {
@@ -825,91 +822,90 @@ void ST_TinyJS_Var::trace(const char* indent, const char* name) {
 	TRACE("%s'%s' = '%s' %s\n",
 		indent,
 		name,
-		getString().c_str(),
-		getTypeAsString().c_str());
-	string indentStr = string(indent) + " ";
+		getString(),
+		getTypeAsString());
+	const char* indentStr = strconcat(indent, " ", NULL);
 	GSList/*<ST_TinyJS_VarLink*>*/* list = firstChild;
 	while(list) {
 		ST_TinyJS_VarLink* l = (ST_TinyJS_VarLink*)list->data;
-		l->var->trace(indentStr.c_str(), l->name.c_str());
+		l->var->trace(indentStr, l->name);
 		list = list->next;
 	}
 }
 //-----------------------------------------------------------------------------
 //For debugging - just dump a string version of the type.
-string ST_TinyJS_Var::getTypeAsString() {
-	string typeStr = "";
-	if(type == TINYJS_VAR_NUMBER)   { typeStr = "NUMBER"; }
-	if(type == TINYJS_VAR_STRING)   { typeStr = "STRING"; }
-	if(type == TINYJS_VAR_FUNCTION) { typeStr = "FUNCTION"; }
-	if(type == TINYJS_VAR_OBJECT)   { typeStr = "OBJECT"; }
-	if(type == TINYJS_VAR_ARRAY)    { typeStr = "ARRAY"; }
-	if(type == TINYJS_VAR_NATIVE)   { typeStr = "NATIVE"; }
-	return typeStr;
+const char* ST_TinyJS_Var::getTypeAsString() {
+	if(type == TINYJS_VAR_NUMBER)   { return "NUMBER"; }
+	if(type == TINYJS_VAR_STRING)   { return "STRING"; }
+	if(type == TINYJS_VAR_FUNCTION) { return "FUNCTION"; }
+	if(type == TINYJS_VAR_OBJECT)   { return "OBJECT"; }
+	if(type == TINYJS_VAR_ARRAY)    { return "ARRAY"; }
+	if(type == TINYJS_VAR_NATIVE)   { return "NATIVE"; }
+	return "";
 }
 //-----------------------------------------------------------------------------
 //Get data as a parsable javascript string.
-string ST_TinyJS_Var::getParsableString() {
+const char* ST_TinyJS_Var::getParsableString() {
 	//Numbers can just be put in directly.
 	if(isNumber()) { return getString(); }
 	if(isFunction()) {
-		string funcStr = "function (";
+		GString* funcStr = g_string_new("function (");
 		//Get list of parameters.
 		GSList/*<ST_TinyJS_VarLink*>*/* list = firstChild;
 		while(list) {
 			ST_TinyJS_VarLink* l = (ST_TinyJS_VarLink*)list->data;
-			funcStr += l->name;
-			if(list->next) { funcStr += ","; }
+			g_string_append(funcStr, l->name);
+			if(list->next) { g_string_append(funcStr, ","); }
 			list = list->next;
 		}
 		//Add function body.
-		funcStr += ") ";
-		funcStr += getString();
-		return funcStr;
+		g_string_append(funcStr, ") ");
+		g_string_append(funcStr, getString());
+		return funcStr->str;
 	}
 	//If it is a string then we quote it.
-	if(isString()) { return getJSString(getString().c_str()); }
+	if(isString()) { return getJSString(getString()); }
 	if(isNull()) { return "null"; }
 	return "undefined";	//※TODO:オブジェクトや配列も間違って"undefined"と表示されてしまうのではないか?
 }
 //-----------------------------------------------------------------------------
 //Write out all the JS code needed to recreate this script variable to the stream (as JSON).
-string ST_TinyJS_Var::getJSON(const char* linePrefix) {
-	string indentedLinePrefix = linePrefix;
-	indentedLinePrefix += "  ";
-	string destination;
+const char* ST_TinyJS_Var::getJSON(const char* linePrefix) {
+	GString* indentedLinePrefix = g_string_new(linePrefix);
+	g_string_append(indentedLinePrefix, "  ");
+	GString* destination = g_string_new(NULL);
 	if(isObject()) {
 		//Children - handle with bracketed list.
-		destination += "{\n";
+		g_string_append(destination, "{\n");
 		GSList/*<ST_TinyJS_VarLink*>*/* list = firstChild;
 		while(list) {
 			ST_TinyJS_VarLink* l = (ST_TinyJS_VarLink*)list->data;
-			destination += indentedLinePrefix;
-			destination += getJSString(l->name.c_str());
-			destination += ": ";
-			destination += l->var->getJSON(indentedLinePrefix.c_str());
-			if(list->next) { destination += ","; }
-			destination += "\n";
+			g_string_append(destination, indentedLinePrefix->str);
+			g_string_append(destination, getJSString(l->name));
+			g_string_append(destination, ": ");
+			g_string_append(destination, l->var->getJSON(indentedLinePrefix->str));
+			if(list->next) { g_string_append(destination, ","); }
+			g_string_append(destination, "\n");
 			list = list->next;
 		}
-		destination += linePrefix;
-		destination += "}";
+		g_string_append(destination, linePrefix);
+		g_string_append(destination, "}");
 	} else if(isArray()) {
-		destination += "[\n";
+		g_string_append(destination, "[\n");
 		int len = getArrayLength();
 		if(len > 10000) { len = 10000; }	//We don't want to get stuck here!
 		for(int i = 0; i < len; i++) {
-			destination += getArrayIndex(i)->getJSON(indentedLinePrefix.c_str());
-			if(i < len - 1) { destination += ","; }
-			destination += "\n";
+			g_string_append(destination, getArrayIndex(i)->getJSON(indentedLinePrefix->str));
+			if(i < len - 1) { g_string_append(destination, ","); }
+			g_string_append(destination, "\n");
 		}
-		destination += linePrefix;
-		destination += "]";
+		g_string_append(destination, linePrefix);
+		g_string_append(destination, "]");
 	} else {
 		//No children or a function... just write value directly.
-		destination += getParsableString();
+		g_string_append(destination, getParsableString());
 	}
-	return destination;
+	return destination->str;
 }
 //-----------------------------------------------------------------------------
 //Set the callback for native functions.
@@ -923,9 +919,7 @@ void ST_TinyJS_Var::setCallback(TinyJS_Callback* callback, void* userdata) {
 ST_TinyJS::ST_TinyJS() {
 	lex         = NULL;
 	scopes      = NULL;
-#ifdef  TINYJS_CALL_STACK
 	call_stack  = NULL;
-#endif//TINYJS_CALL_STACK
 	root        = (new ST_TinyJS_Var(TINYJS_BLANK_DATA, TINYJS_VAR_OBJECT));
 	//Add built-in classes.
 	stringClass = (new ST_TinyJS_Var(TINYJS_BLANK_DATA, TINYJS_VAR_OBJECT));
@@ -941,56 +935,56 @@ void ST_TinyJS::trace(const char* indent) {
 }
 //-----------------------------------------------------------------------------
 void ST_TinyJS::execute(const char* code) {
-	ST_TinyJS_Lex* save_lex = lex;
-	GSList/*<ST_TinyJS_Var*>*/* save_scopes = scopes;
-#ifdef TINYJS_CALL_STACK
-	GSList/*<char*>*/* save_call_stack = call_stack;
-#endif//TINYJS_CALL_STACK
+	//{{SaveContext
+	ST_TinyJS_Lex* save_lex                  = lex;
+	GSList/*<ST_TinyJS_Var*>*/* save_scopes  = scopes;
+	GSList/*<const char*>*/* save_call_stack = call_stack;
+	//}}SaveContext
 	{
-		lex = new ST_TinyJS_Lex(code, 0, strlen(code));
-		scopes = g_slist_prepend(NULL, root);
-#ifdef TINYJS_CALL_STACK
+		//{{InitContext
+		lex        = new ST_TinyJS_Lex(code, 0, strlen(code));
+		scopes     = g_slist_prepend(NULL, root);
 		call_stack = NULL;
-#endif//TINYJS_CALL_STACK
+		//}}InitContext
 		try {
 			bool bExec = true;
 			while(lex->tk) { statement(&bExec); }
 		} catch(ST_TinyJS_Exception* e) {
-			string msg = stack_trace(e);
-			g_slist_free(scopes);
-			lex = save_lex;
-			scopes = save_scopes;
-#ifdef TINYJS_CALL_STACK
+			const char* msg = stack_trace(e);
+			//{{RestoreContext
+			lex        = save_lex;
+			scopes     = save_scopes;
 			call_stack = save_call_stack;
-#endif//TINYJS_CALL_STACK
-			throw new ST_TinyJS_Exception(msg.c_str());
+			//}}RestoreContext
+			throw new ST_TinyJS_Exception(msg);
 		}
 		if(!scopes || (scopes->data != root) || g_slist_delete_link(scopes, scopes)) { DIE(); }	//[root]に戻っているはずであり、rootを取り除けば[]になるはず。
+		if(call_stack) { DIE(); }			//[]に戻っているはず。
 	}
-	lex = save_lex;
-	scopes = save_scopes;
-#ifdef TINYJS_CALL_STACK
+	//{{RestoreContext
+	lex        = save_lex;
+	scopes     = save_scopes;
 	call_stack = save_call_stack;
-#endif//TINYJS_CALL_STACK
+	//}}RestoreContext
 }
 //-----------------------------------------------------------------------------
 //Evaluate the given code and return a link to a javascript object, useful for(dangerous) JSON parsing.
 //If nothing to return, will return 'undefined' variable type.
 //ST_TinyJS_VarLink is returned as this will automatically unref the result as it goes out of scope.
 //If you want to keep it, you must use ref() and unref().
-ST_TinyJS_VarLink ST_TinyJS::evaluateComplex(const char* code) {
+ST_TinyJS_Var* ST_TinyJS::evaluateComplex(const char* code) {
 	ST_TinyJS_VarLink* l = NULL;
-	ST_TinyJS_Lex* save_lex = lex;
-	GSList/*<ST_TinyJS_Var*>*/* save_scopes = scopes;
-#ifdef TINYJS_CALL_STACK
-	GSList/*<char*>*/* save_call_stack = call_stack;
-#endif//TINYJS_CALL_STACK
+	//{{SaveContext
+	ST_TinyJS_Lex* save_lex                  = lex;
+	GSList/*<ST_TinyJS_Var*>*/* save_scopes  = scopes;
+	GSList/*<const char*>*/* save_call_stack = call_stack;
+	//}}SaveContext
 	{
-		lex = new ST_TinyJS_Lex(code, 0, strlen(code));
-		scopes = g_slist_prepend(NULL, root);	//[root]
-#ifdef TINYJS_CALL_STACK
-		call_stack = NULL;	//[]
-#endif//TINYJS_CALL_STACK
+		//{{InitContext
+		lex        = new ST_TinyJS_Lex(code, 0, strlen(code));
+		scopes     = g_slist_prepend(NULL, root);	//[root]
+		call_stack = NULL;				//[]
+		//}}InitContext
 		try {
 			bool bExec = true;
 			do {
@@ -998,34 +992,29 @@ ST_TinyJS_VarLink ST_TinyJS::evaluateComplex(const char* code) {
 				if(lex->tk != TINYJS_LEX_EOF) { lex->match(';'); }
 			} while(lex->tk != TINYJS_LEX_EOF);
 		} catch(ST_TinyJS_Exception* e) {
-			string msg = stack_trace(e);
-			g_slist_free(scopes);
-			lex = save_lex;
-			scopes = save_scopes;
-#ifdef TINYJS_CALL_STACK
+			const char* msg = stack_trace(e);
+			//{{RestoreContext
+			lex        = save_lex;
+			scopes     = save_scopes;
 			call_stack = save_call_stack;
-#endif//TINYJS_CALL_STACK
-			throw new ST_TinyJS_Exception(msg.c_str());
+			//}}RestoreContext
+			throw new ST_TinyJS_Exception(msg);
 		}
 		if(!scopes || (scopes->data != root) || g_slist_delete_link(scopes, scopes)) { DIE(); }	//[root]に戻っているはずであり、rootを取り除けば[]になるはず。
-#ifdef TINYJS_CALL_STACK
-		if(call_stack) { DIE(); }	//[]に戻っているはず。
-#endif//TINYJS_CALL_STACK
+		if(call_stack) { DIE(); }			//[]に戻っているはず。
 	}
-	lex = save_lex;
-	scopes = save_scopes;
-#ifdef TINYJS_CALL_STACK
+	//{{RestoreContext
+	lex        = save_lex;
+	scopes     = save_scopes;
 	call_stack = save_call_stack;
-#endif//TINYJS_CALL_STACK
-	if(l) { return *l; }
-	//return undefined...
-	return ST_TinyJS_VarLink(new ST_TinyJS_Var());
+	//}}RestoreContext
+	return l ? l->var : new ST_TinyJS_Var();
 }
 //-----------------------------------------------------------------------------
 //Evaluate the given code and return a string.
 //If nothing to return, will return 'undefined'.
-string ST_TinyJS::evaluate(const char* code) {
-	return evaluateComplex(code).var->getString();
+const char* ST_TinyJS::evaluate(const char* code) {
+	return evaluateComplex(code)->getString();
 }
 //-----------------------------------------------------------------------------
 //Add a native function to be called from TinyJS.
@@ -1036,33 +1025,35 @@ string ST_TinyJS::evaluate(const char* code) {
 //│void scSubstring(ST_TinyJS_Var* v, void* userdata) { ... }
 //│tinyJS->addNative("function String.substring(lo, hi)", scSubstring, NULL);
 void ST_TinyJS::addNative(const char* funcDesc, TinyJS_Callback* callback, void* userdata) {
+	//{{SaveContext
 	ST_TinyJS_Lex* save_lex = lex;
-	lex = new ST_TinyJS_Lex(funcDesc, 0, strlen(funcDesc));
-
-	ST_TinyJS_Var* base = root;
-
-	lex->match(TINYJS_LEX_R_FUNCTION);
-	string funcName = lex->tkStr;
-	lex->match(TINYJS_LEX_ID);
-	//Check for dots, we might want to do something like function String.substring ...
-	while(lex->tk == '.') {
-		lex->match('.');
-		ST_TinyJS_VarLink* l = base->findChild(funcName.c_str());
-		//If it doesn't exist, make an object class.
-		if(!l) {
-			l = base->addChild(funcName.c_str(), new ST_TinyJS_Var(TINYJS_BLANK_DATA, TINYJS_VAR_OBJECT));
-		}
-		base = l->var;
-		funcName = lex->tkStr;
+	//}}SaveContext
+	{
+		//{{InitContext
+		lex = new ST_TinyJS_Lex(funcDesc, 0, strlen(funcDesc));
+		//}}InitContext
+		ST_TinyJS_Var* base = root;
+		lex->match(TINYJS_LEX_R_FUNCTION);
+		const char* funcName = lex->tkStr;
 		lex->match(TINYJS_LEX_ID);
+		//Check for dots, we might want to do something like function String.substring ...
+		while(lex->tk == '.') {
+			lex->match('.');
+			ST_TinyJS_VarLink* l = base->findChild(funcName);
+			//If it doesn't exist, make an object class.
+			if(!l) { l = base->addChild(funcName, new ST_TinyJS_Var(TINYJS_BLANK_DATA, TINYJS_VAR_OBJECT)); }
+			base = l->var;
+			funcName = lex->tkStr;
+			lex->match(TINYJS_LEX_ID);
+		}
+		ST_TinyJS_Var* funcVar = new ST_TinyJS_Var(TINYJS_BLANK_DATA, TINYJS_VAR_NATIVE);
+		funcVar->setCallback(callback, userdata);
+		parseFunctionArguments(funcVar);
+		base->addChild(funcName, funcVar);
 	}
-
-	ST_TinyJS_Var* funcVar = new ST_TinyJS_Var(TINYJS_BLANK_DATA, TINYJS_VAR_NATIVE);
-	funcVar->setCallback(callback, userdata);
-	parseFunctionArguments(funcVar);
+	//{{RestoreContext
 	lex = save_lex;
-
-	base->addChild(funcName.c_str(), funcVar);
+	//}}RestoreContext
 }
 //-----------------------------------------------------------------------------
 //Handle a function call (assumes we've parsed the function name and we're on the start bracket).
@@ -1070,9 +1061,8 @@ void ST_TinyJS::addNative(const char* funcDesc, TinyJS_Callback* callback, void*
 ST_TinyJS_VarLink* ST_TinyJS::functionCall(bool* pExec, ST_TinyJS_VarLink* func, ST_TinyJS_Var* parent) {
 	if(*pExec) {
 		if(!func->var->isFunction()) {
-			string errorMsg = "Expecting '";
-			errorMsg = errorMsg + func->name + "' to be a function.";
-			throw new ST_TinyJS_Exception(errorMsg.c_str());
+			const char* errorMsg = strdup_printf("Expecting '%s' to be a function.", func->name);
+			throw new ST_TinyJS_Exception(errorMsg);
 		}
 		lex->match('(');
 		//Create a new symbol table entry for execution of this function.
@@ -1089,10 +1079,10 @@ if(functionRoot->findChild("this")){DIE();}
 			if(*pExec) {
 				if(tmp->var->isBasic()) {
 					//pass by value
-					functionRoot->addChild(l->name.c_str(), tmp->var->deepCopy());
+					functionRoot->addChild(l->name, tmp->var->deepCopy());
 				} else {
 					//pass by reference
-					functionRoot->addChild(l->name.c_str(), tmp->var);
+					functionRoot->addChild(l->name, tmp->var);
 				}
 			}
 			if(list->next) { lex->match(','); }
@@ -1102,44 +1092,44 @@ if(functionRoot->findChild("this")){DIE();}
 		//Execute function!
 		//Add the function's execute space to the symbol table so we can recurse.
 		ST_TinyJS_VarLink* returnVarLink = functionRoot->addChild(TINYJS_RETURN_VAR);
-		scopes = g_slist_prepend(scopes, functionRoot);
-#ifdef TINYJS_CALL_STACK
-		char* call_stack_str = strdup_printf("%s from %s", func->name.c_str(), lex->getLastPosition().c_str());
-		call_stack = g_slist_prepend(call_stack, call_stack_str);
-#endif//TINYJS_CALL_STACK
-		if(func->var->isNative()) {
-			assert(func->var->callback);
-			(*func->var->callback)(this, functionRoot, func->var->userdata);
-		} else {
+		//{{SaveContext
+		ST_TinyJS_Lex* save_lex                  = lex;
+		GSList/*<ST_TinyJS_Var*>*/* save_scopes  = scopes;
+		GSList/*<const char*>*/* save_call_stack = call_stack;
+		//}}SaveContext
+		{
 			//We just want to execute the block, but something could have messed up and left us with the wrong ScriptLex, so we want to be careful here...
-			ST_TinyJS_Exception* e = NULL;
-			ST_TinyJS_Lex* save_lex = lex;
-			const char* funcBody = func->var->getString().c_str();
-			lex = new ST_TinyJS_Lex(funcBody, 0, strlen(funcBody));
+			const char* funcBody = func->var->getString();
+			//{{InitContext
+			lex        = new ST_TinyJS_Lex(funcBody, 0, strlen(funcBody));
+			scopes     = g_slist_prepend(scopes, functionRoot);
+			call_stack = g_slist_prepend(call_stack, strdup_printf("%s from %s", func->name, lex->getLastPosition()));
+			//}}InitContext
 			try {
-				block(pExec);
-				//Because return will probably have called this, and set execute to false.
-				*pExec = true;
-			} catch(ST_TinyJS_Exception* _e) {
-				e = _e;
-			}
-			lex = save_lex;
-			if(e) {
-//※要検討			scopes = g_slist_delete_link(scopes, scopes);	は要らないのか？元ソースに無かったが…
-				throw e;
+				if(func->var->isNative()) {
+					assert(func->var->callback);
+					(*func->var->callback)(this, functionRoot, func->var->userdata);
+				} else {
+					block(pExec);
+					//Because return will probably have called this, and set execute to false.
+					*pExec = true;
+				}
+			} catch(ST_TinyJS_Exception* /*e*/) {
+				//{{RestoreContext
+				lex        = save_lex;
+				scopes     = save_scopes;
+				call_stack = save_call_stack;
+				//}}RestoreContext
+				throw;
 			}
 		}
-		if(!scopes || (scopes->data != functionRoot)) { DIE(); }		//[functionRoot,...,root]に戻っているはず。
-		scopes = g_slist_delete_link(scopes, scopes);				//[...,root]
-#ifdef TINYJS_CALL_STACK
-		if(!call_stack || (call_stack->data != call_stack_str)) { DIE(); }	//[call_stack_str,...]に戻っているはず。
-		call_stack = g_slist_delete_link(call_stack, call_stack);		//[...]
-		free(call_stack_str);
-#endif//TINYJS_CALL_STACK
-		//Get the real return var before we remove it from our function.
-		ST_TinyJS_VarLink* tmp = new ST_TinyJS_VarLink(returnVarLink->var);		//※ガベージコレクション前提にしたらこの処理は不要になり、単にreturnVarLink->varを返すだけで良くなるはず。(※TODO:要検討)
+		//{{RestoreContext
+		lex        = save_lex;
+		scopes     = save_scopes;
+		call_stack = save_call_stack;
+		//}}RestoreContext
 		functionRoot->removeLink(returnVarLink);
-		return tmp;
+		return returnVarLink;
 	} else {
 		//Function, but not executing - just parse args and be done.
 		lex->match('(');
@@ -1188,11 +1178,11 @@ ST_TinyJS_VarLink* ST_TinyJS::factor(bool* pExec) {
 	//ID
 	if(lex->tk == TINYJS_LEX_ID) {
 		ST_TinyJS_VarLink* a = NULL;
-		if(*pExec) { a = findInScopes(lex->tkStr.c_str()); }
+		if(*pExec) { a = findInScopes(lex->tkStr); }
 		if(!a) {
 			//Variable doesn't exist! JavaScript says we should create it.
 			//(We won't add it here. This is done in the assignment operator.)
-			a = new ST_TinyJS_VarLink(new ST_TinyJS_Var(), lex->tkStr.c_str());
+			a = new ST_TinyJS_VarLink(new ST_TinyJS_Var(), lex->tkStr);
 		}
 		lex->match(TINYJS_LEX_ID);
 		//ID(～),又は,ID.ID,又は,ID[～]を、IDに還元して繰り返す。
@@ -1205,19 +1195,19 @@ ST_TinyJS_VarLink* ST_TinyJS::factor(bool* pExec) {
 			} else if(lex->tk == '.') {
 				lex->match('.');
 				if(*pExec) {
-					string name = lex->tkStr;
-					ST_TinyJS_VarLink* l = a->var->findChild(name.c_str());
-					if(!l) { l = findInParentClasses(a->var, name.c_str()); }
+					const char* name = lex->tkStr;
+					ST_TinyJS_VarLink* l = a->var->findChild(name);
+					if(!l) { l = findInParentClasses(a->var, name); }
 					if(!l) {
 						//If we haven't found this defined yet, use the built-in 'length' properly.
-						if(a->var->isArray() && (name == "length")) {
+						if(a->var->isArray() && !strcmp(name, "length")) {
 							int len = a->var->getArrayLength();
 							l = new ST_TinyJS_VarLink(new ST_TinyJS_Var(len));
-						} else if(a->var->isString() && (name == "length")) {
-							int len = a->var->getString().length();
+						} else if(a->var->isString() && !strcmp(name, "length")) {
+							int len = strlen(a->var->getString());
 							l = new ST_TinyJS_VarLink(new ST_TinyJS_Var(len));
 						} else {
-							l = a->var->addChild(name.c_str());
+							l = a->var->addChild(name);
 						}
 					}
 					parent = a->var;
@@ -1230,7 +1220,7 @@ ST_TinyJS_VarLink* ST_TinyJS::factor(bool* pExec) {
 				ST_TinyJS_VarLink* index = base(pExec);
 				lex->match(']');
 				if(*pExec) {
-					ST_TinyJS_VarLink* l = a->var->findChildOrCreate(index->var->getString().c_str());
+					ST_TinyJS_VarLink* l = a->var->findChildOrCreate(index->var->getString());
 					parent = a->var;
 					a = l;
 				}
@@ -1242,13 +1232,13 @@ ST_TinyJS_VarLink* ST_TinyJS::factor(bool* pExec) {
 	}
 	//数値リテラル
 	if(lex->tk == TINYJS_LEX_L_NUM) {
-		ST_TinyJS_Var* a = new ST_TinyJS_Var(lex->tkStr.c_str(), TINYJS_VAR_NUMBER);
+		ST_TinyJS_Var* a = new ST_TinyJS_Var(lex->tkStr, TINYJS_VAR_NUMBER);
 		lex->match(lex->tk);
 		return new ST_TinyJS_VarLink(a);
 	}
 	//文字列リテラル
 	if(lex->tk == TINYJS_LEX_L_STR) {
-		ST_TinyJS_Var* a = new ST_TinyJS_Var(lex->tkStr.c_str(), TINYJS_VAR_STRING);
+		ST_TinyJS_Var* a = new ST_TinyJS_Var(lex->tkStr, TINYJS_VAR_STRING);
 		lex->match(TINYJS_LEX_L_STR);
 		return new ST_TinyJS_VarLink(a);
 	}
@@ -1258,7 +1248,7 @@ ST_TinyJS_VarLink* ST_TinyJS::factor(bool* pExec) {
 		//JSON-style object definition.
 		ST_TinyJS_Var* contents = new ST_TinyJS_Var(TINYJS_BLANK_DATA, TINYJS_VAR_OBJECT);
 		while(lex->tk != '}') {
-			string id = lex->tkStr;
+			const char* id = lex->tkStr;
 			//We only allow strings or IDs on the left hand side of an initialisation.
 			if(lex->tk == TINYJS_LEX_L_STR) {
 				lex->match(TINYJS_LEX_L_STR);
@@ -1267,7 +1257,7 @@ ST_TinyJS_VarLink* ST_TinyJS::factor(bool* pExec) {
 			}
 			lex->match(':');
 			ST_TinyJS_VarLink* a = base(pExec);
-			contents->addChild(id.c_str(), a->var);
+			contents->addChild(id, a->var);
 			if(lex->tk != '}') { lex->match(','); }
 		}
 		lex->match('}');
@@ -1290,18 +1280,19 @@ ST_TinyJS_VarLink* ST_TinyJS::factor(bool* pExec) {
 	}
 	if(lex->tk == TINYJS_LEX_R_FUNCTION) {
 		ST_TinyJS_VarLink* funcVar = parseFunctionDefinition();
-		if(funcVar->name != TINYJS_TEMP_NAME)
-		TRACE("Functions not defined at statement-level are not meant to have a name.\n");
+		if(strcmp(funcVar->name, TINYJS_TEMP_NAME)) {	//TINYJS_TEMP_NAME以外ならば…
+			TRACE("Functions not defined at statement-level are not meant to have a name.\n");
+		}
 		return funcVar;
 	}
 	if(lex->tk == TINYJS_LEX_R_NEW) {
 		//new -> create a new object
 		lex->match(TINYJS_LEX_R_NEW);
-		string className = lex->tkStr;
+		const char* className = lex->tkStr;
 		if(*pExec) {
-			ST_TinyJS_VarLink* objClassOrFunc = findInScopes(className.c_str());
+			ST_TinyJS_VarLink* objClassOrFunc = findInScopes(className);
 			if(!objClassOrFunc) {
-				TRACE("%s is not a valid class name.\n", className.c_str());
+				TRACE("%s is not a valid class name.\n", className);
 				return new ST_TinyJS_VarLink(new ST_TinyJS_Var());
 			}
 			lex->match(TINYJS_LEX_ID);
@@ -1502,8 +1493,8 @@ ST_TinyJS_VarLink* ST_TinyJS::base(bool* pExec) {
 		//If we're assigning to this and we don't have a parent, add it to the symbol table root as per JavaScript.
 		if(*pExec) {
 			if(!lhs->owned) {
-				if(lhs->name.length()) {
-					ST_TinyJS_VarLink* realLhs = root->addChild(lhs->name.c_str(), lhs->var);
+				if(strlen(lhs->name)) {
+					ST_TinyJS_VarLink* realLhs = root->addChild(lhs->name, lhs->var);
 					lhs = realLhs;
 				} else {
 					TRACE("Trying to assign to an un-named type.\n");
@@ -1571,7 +1562,7 @@ void ST_TinyJS::statement(bool* pExec) {
 			ST_TinyJS_VarLink* a = 0;
 			if(*pExec) {
 				ST_TinyJS_Var* v = (ST_TinyJS_Var*)scopes->data;
-				a = v->findChildOrCreate(lex->tkStr.c_str());
+				a = v->findChildOrCreate(lex->tkStr);
 			}
 			lex->match(TINYJS_LEX_ID);
 			//Now do stuff defined with dots.
@@ -1579,7 +1570,7 @@ void ST_TinyJS::statement(bool* pExec) {
 				lex->match('.');
 				if(*pExec) {
 					ST_TinyJS_VarLink* lastA = a;
-					a = lastA->var->findChildOrCreate(lex->tkStr.c_str());
+					a = lastA->var->findChildOrCreate(lex->tkStr);
 				}
 				lex->match(TINYJS_LEX_ID);
 			}
@@ -1622,9 +1613,10 @@ void ST_TinyJS::statement(bool* pExec) {
 		int whileBodyStart = lex->tokenStart;
 		statement(loopCond ? pExec : &noexec);
 		ST_TinyJS_Lex* whileBody = lex->getSubLex(whileBodyStart);
+		//{{SaveContext
 		ST_TinyJS_Lex* save_lex = lex;
-		int loopCount = TINYJS_LOOP_MAX_ITERATIONS;
-		while(loopCond && loopCount-->0) {
+		//}}SaveContext
+		while(loopCond) {
 			whileCond->reset();
 			lex = whileCond;
 			cond = base(pExec);
@@ -1635,12 +1627,9 @@ void ST_TinyJS::statement(bool* pExec) {
 				statement(pExec);
 			}
 		}
+		//{{RestoreContext
 		lex = save_lex;
-		if(loopCount<=0) {
-			root->trace();
-			TRACE("WHILE Loop exceeded %d iterations at %s.\n", TINYJS_LOOP_MAX_ITERATIONS, lex->getLastPosition().c_str());
-			throw new ST_TinyJS_Exception("LOOP_ERROR");
-		}
+		//}}RestoreContext
 	} else if(lex->tk == TINYJS_LEX_R_FOR) {
 		lex->match(TINYJS_LEX_R_FOR);
 		lex->match('(');
@@ -1659,14 +1648,15 @@ void ST_TinyJS::statement(bool* pExec) {
 		int forBodyStart = lex->tokenStart;
 		statement(loopCond ? pExec : &noexec);
 		ST_TinyJS_Lex* forBody = lex->getSubLex(forBodyStart);
+		//{{SaveContext
 		ST_TinyJS_Lex* save_lex = lex;
+		//}}SaveContext
 		if(loopCond) {
 			forIter->reset();
 			lex = forIter;
 			base(pExec);
 		}
-		int loopCount = TINYJS_LOOP_MAX_ITERATIONS;
-		while(*pExec && loopCond && (loopCount-- > 0)) {
+		while(*pExec && loopCond) {
 			forCond->reset();
 			lex = forCond;
 			cond = base(pExec);
@@ -1682,12 +1672,9 @@ void ST_TinyJS::statement(bool* pExec) {
 				base(pExec);
 			}
 		}
+		//{{RestoreContext
 		lex = save_lex;
-		if(loopCount<=0) {
-			root->trace();
-			TRACE("FOR Loop exceeded %d iterations at %s.\n", TINYJS_LOOP_MAX_ITERATIONS, lex->getLastPosition().c_str());
-			throw new ST_TinyJS_Exception("LOOP_ERROR");
-		}
+		//}}RestoreContext
 	} else if(lex->tk == TINYJS_LEX_R_RETURN) {
 		lex->match(TINYJS_LEX_R_RETURN);
 		ST_TinyJS_VarLink* result = NULL;
@@ -1708,11 +1695,11 @@ void ST_TinyJS::statement(bool* pExec) {
 	} else if(lex->tk == TINYJS_LEX_R_FUNCTION) {
 		ST_TinyJS_VarLink* funcVar = parseFunctionDefinition();
 		if(*pExec) {
-			if(funcVar->name == TINYJS_TEMP_NAME) {
+			if(!strcmp(funcVar->name, TINYJS_TEMP_NAME)) {	//TINYJS_TEMP_NAMEならば…
 				TRACE("Functions defined at statement-level are meant to have a name.\n");
-			} else {
+			} else {						//TINYJS_TEMP_NAME以外ならば…
 				ST_TinyJS_Var* v = (ST_TinyJS_Var*)scopes->data;
-				v->addChild(funcVar->name.c_str(), funcVar->var);
+				v->addChild(funcVar->name, funcVar->var);
 			}
 		}
 	} else {
@@ -1722,19 +1709,16 @@ void ST_TinyJS::statement(bool* pExec) {
 //-----------------------------------------------------------------------------
 //Get the given variable specified by a path (var1.var2.etc), or return NULL.
 ST_TinyJS_Var* ST_TinyJS::getScriptVariable(const char* path) {
-	string sPath(path);
 	//traverse path
 	int prevIdx = 0;
-	int thisIdx = sPath.find('.');
-	if(thisIdx == -1) { thisIdx = sPath.length(); }
+	int thisIdx = strchrnul(path, '.') - path;
 	ST_TinyJS_Var* v = root;
-	while(v && (prevIdx < sPath.length())) {
-		string el = sPath.substr(prevIdx, thisIdx-prevIdx);
-		ST_TinyJS_VarLink* l = v->findChild(el.c_str());
+	while(v && (prevIdx < thisIdx)) {
+		const char* el = strndup(path + prevIdx, thisIdx - prevIdx);
+		ST_TinyJS_VarLink* l = v->findChild(el);
 		v = l ? l->var : NULL;
-		prevIdx = thisIdx+1;
-		thisIdx = sPath.find('.', prevIdx);
-		if(thisIdx == -1) { thisIdx = sPath.length(); }
+		prevIdx = thisIdx + 1/*'.'*/;
+		thisIdx = strchrnul(path + prevIdx, '.') - path;
 	}
 	return v;
 }
@@ -1758,13 +1742,13 @@ bool ST_TinyJS::setVariable(const char* path, const char* varData) {
 ST_TinyJS_VarLink* ST_TinyJS::parseFunctionDefinition() {
 	//Actually parse a function...
 	lex->match(TINYJS_LEX_R_FUNCTION);
-	string funcName = TINYJS_TEMP_NAME;
+	const char* funcName = TINYJS_TEMP_NAME;
 	//We can have functions without names.
 	if(lex->tk == TINYJS_LEX_ID) {
 		funcName = lex->tkStr;
 		lex->match(TINYJS_LEX_ID);
 	}
-	ST_TinyJS_VarLink* funcVar = new ST_TinyJS_VarLink(new ST_TinyJS_Var(TINYJS_BLANK_DATA, TINYJS_VAR_FUNCTION), funcName.c_str());
+	ST_TinyJS_VarLink* funcVar = new ST_TinyJS_VarLink(new ST_TinyJS_Var(TINYJS_BLANK_DATA, TINYJS_VAR_FUNCTION), funcName);
 	parseFunctionArguments(funcVar->var);
 	int funcBegin = lex->tokenStart;
 	bool noexec = false;
@@ -1776,7 +1760,7 @@ ST_TinyJS_VarLink* ST_TinyJS::parseFunctionDefinition() {
 void ST_TinyJS::parseFunctionArguments(ST_TinyJS_Var* funcVar) {
 	lex->match('(');
 	while(lex->tk != ')') {
-		funcVar->addChild(lex->tkStr.c_str());
+		funcVar->addChild(lex->tkStr);
 		lex->match(TINYJS_LEX_ID);
 		if(lex->tk != ')') { lex->match(','); }
 	}
@@ -1819,23 +1803,20 @@ ST_TinyJS_VarLink* ST_TinyJS::findInParentClasses(ST_TinyJS_Var* obj, const char
 }
 //-----------------------------------------------------------------------------
 //元ソースにはこの関数は有りませんが、共通処理をまとめるために追加しました。
-string ST_TinyJS::stack_trace(ST_TinyJS_Exception* e) {
-	string msg;
-	msg += "Error ";
-	msg += e->text;
-#ifdef TINYJS_CALL_STACK
-	GSList/*<char*>*/* list = call_stack;
+const char* ST_TinyJS::stack_trace(ST_TinyJS_Exception* e) {
+	GString* msg = g_string_new(NULL);
+	g_string_append(msg, "Error ");
+	g_string_append(msg, e->text);
+	GSList/*<const char*>*/* list = call_stack;
 	int i = 0;
 	while(list) {
-		char buf[256];
-		msg += "\n";
-		msg += itoa(i, buf, 10);
-		msg += ": ";
-		msg += (char*)list->data;
+		g_string_append(msg, "\n");
+		g_string_append_printf(msg, "%d", i);
+		g_string_append(msg, ": ");
+		g_string_append(msg, (const char*)list->data);
 		i++;
 	}
-#endif//TINYJS_CALL_STACK
-	msg += " at ";
-	msg += lex->getLastPosition();
-	return msg;
+	g_string_append(msg, " at ");
+	g_string_append(msg, lex->getLastPosition());
+	return msg->str;
 }

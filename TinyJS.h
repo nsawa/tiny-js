@@ -12,110 +12,13 @@
 //
 #ifndef __TINYJS_H__
 #define __TINYJS_H__
-//*****************************************************************************
-//	
-//*****************************************************************************
 #include "clip/clip.h"
-//*****************************************************************************
-//	std::stringの代用
-//*****************************************************************************
-class string : public gc_cleanup {
-public:
-	string(const char* p = "") {
-		m_p = strdup(p);
-	}
-	string(const char* p, int n) {
-		m_p = strndup(p, n);
-	}
-	string(const string& s) {	//コピーコンストラクタ
-		m_p = strdup(s.m_p);
-	}
-	string& operator =(const string& s) {	//代入演算子
-		m_p = strdup(s.m_p);
-		return *this;
-	}
-	const char* c_str() const {
-		return m_p;
-	}
-	int length() const {
-		return strlen(m_p);
-	}
-	int find(int c, int i = 0) const {
-		char s[2] = { (char)c, '\0' };
-		return find(s, i);
-	}
-	int find(const char* p, int i = 0) const {
-		assert((unsigned)i <= strlen(m_p));
-		p = strstr(m_p + i, p);
-		return p ? (p - m_p) : -1;
-	}
-	int find(const string& s, int i = 0) const {
-		return find(s.c_str(), i);
-	}
-	string substr(int i, int n = -1) const {
-		assert((unsigned)i <= strlen(m_p));
-		string t;
-		if(n == -1) {
-			t.m_p = strdup(m_p + i);
-		} else {
-			t.m_p = strndup(m_p + i, n);
-		}
-		return t;
-	}
-	int operator [](int i) const {
-		assert((unsigned)i < (unsigned)strlen(m_p));
-		return m_p[i];
-	}
-	void clear() {
-		m_p = strdup("");
-	}
-	string& operator +=(int c) {
-		char s[2] = { (char)c, '\0' };
-		return *this += s;
-	}
-	string& operator +=(const char* p) {
-		m_p = (char*)realloc(m_p, strlen(m_p) + strlen(p) + 1);
-		strcat(m_p, p);
-		return *this;
-	}
-	string& operator +=(const string& s) {
-		return *this += s.c_str();
-	}
-	int compare(const char* p) const   { return strcmp(m_p, p); }
-	int compare(const string& s) const { return compare(s.m_p); }
-	int operator ==(const char* p) const   { return compare(    p) == 0; }
-	int operator ==(const string& s) const { return compare(s.m_p) == 0; }
-	int operator !=(const char* p) const   { return compare(    p) != 0; }
-	int operator !=(const string& s) const { return compare(s.m_p) != 0; }
-	int operator < (const char* p) const   { return compare(    p) <  0; }
-	int operator < (const string& s) const { return compare(s.m_p) <  0; }
-	int operator <=(const char* p) const   { return compare(    p) <= 0; }
-	int operator <=(const string& s) const { return compare(s.m_p) <= 0; }
-	int operator > (const char* p) const   { return compare(    p) >  0; }
-	int operator > (const string& s) const { return compare(s.m_p) >  0; }
-	int operator >=(const char* p) const   { return compare(    p) >= 0; }
-	int operator >=(const string& s) const { return compare(s.m_p) >= 0; }
-private:
-	char*	m_p;
-};
-inline string operator +(const string& s1, const string& s2) {
-	string t(s1);
-	return t += s2;
-}
-inline string operator +(const char* p, const string& s) {
-	return string(p) + s;
-}
-inline string operator +(const string& s, const char* p) {
-	return s + string(p);
-}
 //*****************************************************************************
 //	
 //*****************************************************************************
 #ifndef TRACE
 #define TRACE printf
 #endif//TRACE
-#define TINYJS_CALL_STACK		//If defined, this keeps a note of all calls and where from in memory. This is slower, but good for debugging.
-#define TINYJS_LOOP_MAX_ITERATIONS	8192
 //-----------------------------------------------------------------------------
 //LEX_TYPES
 #define TINYJS_LEX_EOF			0
@@ -186,7 +89,7 @@ typedef void TinyJS_Callback(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata
 class ST_TinyJS_Exception : public gc_cleanup {
 public:
 	ST_TinyJS_Exception(const char* exceptionText);
-	string text;
+	const char*	text;
 };
 //*****************************************************************************
 //	ST_TinyJS_Lex
@@ -195,20 +98,20 @@ class ST_TinyJS_Lex : public gc_cleanup {
 public:
 	ST_TinyJS_Lex(const char* input, int startChar, int endChar);
 
-	int	tk;		//The type of the token that we have.
-	string	tkStr;		//Data contained in the token we have here.
-	int	tokenStart;	//Position in the data at the beginning of the token we have here.
-	int	tokenEnd;	//Position in the data at the last character of the token we have here.
+	int		tk;		//The type of the token that we have.
+	const char*	tkStr;		//Data contained in the token we have here.
+	int		tokenStart;	//Position in the data at the beginning of the token we have here.
+	int		tokenEnd;	//Position in the data at the last character of the token we have here.
 
 	void reset();					//Reset this lex so we can start again.
 	void match(int expected_tk);			//Lexical match wotsit.
-	static string getTokenStr(int token);		//Get the string representation of the given token.
+	static const char* getTokenStr(int token);	//Get the string representation of the given token.
 
-	string getSubString(int pos);			//Return a sub-string from the given position up until right now.
+	const char* getSubString(int pos);		//Return a sub-string from the given position up until right now.
 	ST_TinyJS_Lex* getSubLex(int lastPosition);	//Return a sub-lexer from the given position up until right now.
 
-	string getLastPosition();			//Return a string representing the position in lines and columns of the tokenLastEnd.
-	string getPosition(int pos);			//Return a string representing the position in lines and columns of the character pos given.
+	const char* getLastPosition();			//Return a string representing the position in lines and columns of the tokenLastEnd.
+	const char* getPosition(int pos);		//Return a string representing the position in lines and columns of the character pos given.
 
 private:
 	//When we go into a loop, we use getSubLex() to get a lexer for just the sub-part of the relevant string.
@@ -230,7 +133,7 @@ public:
 	ST_TinyJS_VarLink(ST_TinyJS_Var* v, const char* name = TINYJS_TEMP_NAME);
 	ST_TinyJS_VarLink(const ST_TinyJS_VarLink& link);	//Copy constructor.
 
-	string			name;
+	const char*		name;
 	ST_TinyJS_Var*		var;
 	bool			owned;
 
@@ -247,7 +150,7 @@ class ST_TinyJS_Var : public gc_cleanup {
 public:
 	ST_TinyJS_Var();					//Create undefined.
 	ST_TinyJS_Var(const char* varData, int varFlags);	//User defined.
-	ST_TinyJS_Var(const char* str);			//Create a string.
+	ST_TinyJS_Var(const char* str);				//Create a string.
 	ST_TinyJS_Var(double val);
 
 	ST_TinyJS_Var* getReturnVar();			//If this is a function, get the result value (for use by native functions).
@@ -268,8 +171,8 @@ public:
 
 	bool getBool();
 	double getNumber();
-	string getString();
-	string getParsableString();			//Get data as a parsable javascript string.
+	const char* getString();
+	const char* getParsableString();		//Get data as a parsable javascript string.
 	void setNumber(double val);
 	void setString(const char* str);
 	void setUndefined();
@@ -286,37 +189,27 @@ public:
 	bool isNative()    { return type == TINYJS_VAR_NATIVE; }
 	bool isBasic()     { return firstChild == NULL; }		//Is this *not* an array/object/etc.
 
-	ST_TinyJS_Var* mathsOp(ST_TinyJS_Var* v, int op);			//Do a maths op with another script variable.
-	void copyValue(ST_TinyJS_Var* v);					//Copy the value from the value given.
-	ST_TinyJS_Var* deepCopy();						//Deep copy this node and return the result.
+	ST_TinyJS_Var* mathsOp(ST_TinyJS_Var* v, int op);		//Do a maths op with another script variable.
+	void copyValue(ST_TinyJS_Var* v);				//Copy the value from the value given.
+	ST_TinyJS_Var* deepCopy();					//Deep copy this node and return the result.
 
 	void trace(const char* indent = "", const char* name = "");	//Dump out the contents of this using trace.
-	string getTypeAsString();					//For debugging - just dump a string version of the type.
-	string getJSON(const char* linePrefix = "");			//Write out all the JS code needed to recreate this script variable to the stream (as JSON).
+	const char* getTypeAsString();					//For debugging - just dump a string version of the type.
+	const char* getJSON(const char* linePrefix = "");		//Write out all the JS code needed to recreate this script variable to the stream (as JSON).
 	void setCallback(TinyJS_Callback* callback, void* userdata);	//Set the callback for native functions.
 
 	GSList/*<ST_TinyJS_VarLink*>*/*	firstChild;
 private:
-	int				type;		//The type determine the type of the variable - number/string/etc.
-	double				numData;	//The contents of this variable if it is a number.
-	string				strData;	//The contents of this variable if it is a string.
-	TinyJS_Callback*		callback;	//Callback for native functions.
-	void*				userdata;	//User data passed as second argument to native functions.
+	int			type;		//The type determine the type of the variable - number/string/etc.
+	double			numData;	//The contents of this variable if it is a number.
+	const char*		strData;	//The contents of this variable if it is a string.
+	TinyJS_Callback*	callback;	//Callback for native functions.
+	void*			userdata;	//User data passed as second argument to native functions.
 
 	void init();					//Initialisation of data members.
 	void copySimpleData(ST_TinyJS_Var* v);		//Copy the basic data and type from the variable given, with no children. Should be used internally only - by copyValue and deepCopy.
 
 	friend class ST_TinyJS;
-};
-//*****************************************************************************
-//	ST_TinyJS_Context
-//*****************************************************************************
-struct CTinyJS_Context : public gc_cleanup {
-	ST_TinyJS_Lex*			lex;		//Current lexer.
-	GSList/*<ST_TinyJS_Var*>*/*	scopes;		//Stack of scopes when parsing.		//※元は先頭がrootで末尾が現在のスタックだったが、逆にして、先頭が現在のスタックで末尾をrootにした。その方がfindInScopes()の実装上も都合が良いし、今後クロージャを作る時にも自然に実装出来るはずだ。リストの末尾方向(rootに向けての方向)へのリンクは、クロージャを作った時点から変更される事は無いので、単純にその時点でのscopesを保持すれば良くなるので。
-#ifdef  TINYJS_CALL_STACK
-	GSList/*<char*>*/*		call_stack;	//Names of places called so we can show when erroring.
-#endif//TINYJS_CALL_STACK
 };
 //*****************************************************************************
 //	ST_TinyJS
@@ -330,10 +223,10 @@ public:
 	//If nothing to return, will return 'undefined' variable type.
 	//ST_TinyJS_VarLink is returned as this will automatically unref the result as it goes out of scope.
 	//If you want to keep it, you must use ref() and unref().
-	ST_TinyJS_VarLink evaluateComplex(const char* code);
+	ST_TinyJS_Var* evaluateComplex(const char* code);
 	//Evaluate the given code and return a string.
 	//If nothing to return, will return 'undefined'.
-	string evaluate(const char* code);
+	const char* evaluate(const char* code);
 
 	//Add a native function to be called from TinyJS.
 	//example:
@@ -356,9 +249,7 @@ public:
 private:
 	ST_TinyJS_Lex*			lex;		//Current lexer.
 	GSList/*<ST_TinyJS_Var*>*/*	scopes;		//Stack of scopes when parsing.		//※元は先頭がrootで末尾が現在のスタックだったが、逆にして、先頭が現在のスタックで末尾をrootにした。その方がfindInScopes()の実装上も都合が良いし、今後クロージャを作る時にも自然に実装出来るはずだ。リストの末尾方向(rootに向けての方向)へのリンクは、クロージャを作った時点から変更される事は無いので、単純にその時点でのscopesを保持すれば良くなるので。
-#ifdef  TINYJS_CALL_STACK
-	GSList/*<char*>*/*		call_stack;	//Names of places called so we can show when erroring.
-#endif//TINYJS_CALL_STACK
+	GSList/*<const char*>*/*	call_stack;	//Names of places called so we can show when erroring.
 
 	ST_TinyJS_Var*			stringClass;	//Built in string class.
 	ST_TinyJS_Var*			objectClass;	//Built in object class.
@@ -384,6 +275,6 @@ private:
 	ST_TinyJS_VarLink* findInScopes(const char* name);				//Finds a child, looking recursively up the scopes.
 	ST_TinyJS_VarLink* findInParentClasses(ST_TinyJS_Var* obj, const char* name);	//Look up in any parent classes of the given object.
 
-	string stack_trace(ST_TinyJS_Exception* e);	//元ソースにはこの関数は有りませんが、共通処理をまとめるために追加しました。
+	const char* stack_trace(ST_TinyJS_Exception* e);	//元ソースにはこの関数は有りませんが、共通処理をまとめるために追加しました。
 };
 #endif//__TINYJS_H__

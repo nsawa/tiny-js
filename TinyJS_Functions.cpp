@@ -34,98 +34,94 @@ static void scMathRandInt(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
 	v->getReturnVar()->setNumber(val);
 }
 static void scCharToInt(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
-	string str = v->getParameter("ch")->getString();;
-	int val = 0;
-	if(str.length() > 0) {
-		val = str[0];
-	}
+	const char* str = v->getParameter("ch")->getString();
+	int val = str[0];
 	v->getReturnVar()->setNumber(val);
 }
 static void scStringIndexOf(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
-	string str = v->getParameter("this")->getString();
-	string search = v->getParameter("search")->getString();
-	int val = str.find(search);
+	const char* str = v->getParameter("this")->getString();
+	const char* search = v->getParameter("search")->getString();
+	const char* p = strstr(str, search);
+	int val = p ? (p - str) : -1;
 	v->getReturnVar()->setNumber(val);
 }
 static void scStringSubstring(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
-	string str = v->getParameter("this")->getString();
+	const char* str = v->getParameter("this")->getString();
 	int lo = v->getParameter("lo")->getNumber();
 	int hi = v->getParameter("hi")->getNumber();
-	int l = hi-lo;
-	if(l>0 && lo>=0 && lo+l<=str.length()) {
-		v->getReturnVar()->setString(str.substr(lo, l).c_str());
+	int l = hi - lo;
+	if((l > 0) && (lo >= 0) && ((lo + l) <= strlen(str))) {
+		v->getReturnVar()->setString(strndup(str + lo, l));
 	} else {
 		v->getReturnVar()->setString("");
 	}
 }
 static void scStringCharAt(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
-	string str = v->getParameter("this")->getString();
+	const char* str = v->getParameter("this")->getString();
 	int p = v->getParameter("pos")->getNumber();
-	if(p>=0 && p<str.length()) {
-		v->getReturnVar()->setString(str.substr(p, 1).c_str());
+	if(p >= 0 && p < strlen(str)) {
+		v->getReturnVar()->setString(strndup(str + p, 1));
 	} else {
 		v->getReturnVar()->setString("");
 	}
 }
 static void scStringCharCodeAt(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
-	string str = v->getParameter("this")->getString();
+	const char* str = v->getParameter("this")->getString();
 	int p = v->getParameter("pos")->getNumber();
-	if((p >= 0) && (p < str.length())) {
+	if((unsigned)p < strlen(str)) {
 		v->getReturnVar()->setNumber(str[p]);
 	} else {
 		v->getReturnVar()->setNumber(0);
 	}
 }
 static void scStringSplit(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
-	string str = v->getParameter("this")->getString();
-	string sep = v->getParameter("separator")->getString();
+	const char* str = v->getParameter("this")->getString();
+	const char* sep = v->getParameter("separator")->getString();
 	ST_TinyJS_Var* result = v->getReturnVar();
 	result->setArray();
 	int length = 0;
-	int pos = str.find(sep);
+	const char* p = strstr(str, sep);
+	int pos = p ? (p - str) : -1;
 	while(pos != -1) {
-		result->setArrayIndex(length++, new ST_TinyJS_Var(str.substr(0,pos).c_str()));
-		str = str.substr(pos+1);
-		pos = str.find(sep);
+		result->setArrayIndex(length++, new ST_TinyJS_Var(strndup(str, pos)));
+		str = str + (pos + 1);
+		p = strstr(str, sep);
+		pos = p ? (p - str) : -1;
 	}
-	if(str.length() > 0) {
-		result->setArrayIndex(length++, new ST_TinyJS_Var(str.c_str()));
+	if(strlen(str)) {
+		result->setArrayIndex(length++, new ST_TinyJS_Var(str));
 	}
 }
 static void scStringFromCharCode(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
-	char str[2];
-	str[0] = v->getParameter("char")->getNumber();
-	str[1] = 0;
+	const char* str = strdup_printf("%c", v->getParameter("char")->getNumber());
 	v->getReturnVar()->setString(str);
 }
 static void scIntegerParseInt(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
-	string str = v->getParameter("str")->getString();
-	int val = strtol(str.c_str(), NULL, 0);
+	const char* str = v->getParameter("str")->getString();
+	int val = strtol(str, NULL, 0);
 	v->getReturnVar()->setNumber(val);
 }
 static void scIntegerValueOf(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
-	string str = v->getParameter("str")->getString();
+	const char* str = v->getParameter("str")->getString();
 	int val = 0;
-	if(str.length()==1) {
-		val = str[0];
-	}
+	if(strlen(str) == 1) { val = str[0]; }
 	v->getReturnVar()->setNumber(val);
 }
 static void scJSONStringify(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
-	string result = v->getParameter("obj")->getJSON();
-	v->getReturnVar()->setString(result.c_str());
+	const char* result = v->getParameter("obj")->getJSON();
+	v->getReturnVar()->setString(result);
 }
 static void scExec(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
-	string str = v->getParameter("jsCode")->getString();
-	tinyJS->execute(str.c_str());
+	const char* str = v->getParameter("jsCode")->getString();
+	tinyJS->execute(str);
 }
 static void scEval(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
-	string str = v->getParameter("jsCode")->getString();
-	v->setReturnVar(tinyJS->evaluateComplex(str.c_str()).var);
+	const char* str = v->getParameter("jsCode")->getString();
+	v->setReturnVar(tinyJS->evaluateComplex(str));
 }
 static void scArrayContains(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
 	ST_TinyJS_Var* obj = v->getParameter("obj");
-	GSList* list = v->getParameter("this")->firstChild;
+	GSList/*<ST_TinyJS_VarLink*>*/* list = v->getParameter("this")->firstChild;
 	bool contains = false;
 	while(list) {
 		ST_TinyJS_VarLink* l = (ST_TinyJS_VarLink*)list->data;
@@ -140,15 +136,15 @@ static void scArrayContains(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata)
 static void scArrayRemove(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
 	ST_TinyJS_Var* obj = v->getParameter("obj");
 	ST_TinyJS_Var* arr = v->getParameter("this");
-	GSList* list1 = arr->firstChild;
+	GSList/*<ST_TinyJS_VarLink*>*/* list1 = arr->firstChild;
 	while(list1) {
 		ST_TinyJS_VarLink* l1 = (ST_TinyJS_VarLink*)list1->data;
 		list1 = list1->next;	//「arr->removeLink(l1)」によってlist1が開放される可能性が有るので予め次へ進めておく。
 		if(l1->var->equals(obj)) {
 			int i1 = l1->getIntName();
-			arr->removeLink(l1);	//オリジナル版のTinyJSはこの処理を忘れていないか?
+			arr->removeLink(l1);	//オリジナル版のTinyJSにはこの処理が無かった。オリジナル版のTinyJSはこの処理を忘れていないか?
 			{
-				GSList* list2 = arr->firstChild;
+				GSList/*<ST_TinyJS_VarLink*>*/* list2 = arr->firstChild;
 				while(list2) {
 					ST_TinyJS_VarLink* l2 = (ST_TinyJS_VarLink*)list2->data;
 					int i2 = l2->getIntName();
@@ -160,17 +156,15 @@ static void scArrayRemove(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
 	}
 }
 static void scArrayJoin(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
-	string sep = v->getParameter("separator")->getString();
+	const char* sep = v->getParameter("separator")->getString();
 	ST_TinyJS_Var* arr = v->getParameter("this");
-	string sstr;
+	GString* sstr = g_string_new(NULL);
 	int l = arr->getArrayLength();
-	for(int i=0;i<l;i++) {
-		if(i>0) {
-			sstr += sep;
-		}
-		sstr += arr->getArrayIndex(i)->getString();
+	for(int i = 0; i < l; i++) {
+		if(i) { g_string_append(sstr, sep); }
+		g_string_append(sstr, arr->getArrayIndex(i)->getString());
 	}
-	v->getReturnVar()->setString(sstr.c_str());
+	v->getReturnVar()->setString(sstr->str);
 }
 //-----------------------------------------------------------------------------
 //Register Functions
