@@ -1341,11 +1341,16 @@ ST_TinyJS_VarLink* ST_TinyJS::shift(bool* pExec) {
 		int op = lex->tk;
 		lex->match(op);
 		ST_TinyJS_VarLink* b = base(pExec);
-		int shift = *pExec ? b->var->getNumber() : 0;
 		if(*pExec) {
-			if(op == TINYJS_LEX_O_LSHIFT) { a->var->setNumber((int)a->var->getNumber() << shift); }
-			if(op == TINYJS_LEX_O_RSHIFT) { a->var->setNumber((int)a->var->getNumber() >> shift); }
-			if(op == TINYJS_LEX_O_RSHIFTUNSIGNED) { a->var->setNumber(((unsigned int)a->var->getNumber()) >> shift); }
+			int value = a->var->getNumber();
+			int shift = b->var->getNumber();
+			switch(op) {
+			default:DIE();	//バグ
+			case TINYJS_LEX_O_LSHIFT:         value =           value << shift; break;
+			case TINYJS_LEX_O_RSHIFT:         value =           value >> shift; break;
+			case TINYJS_LEX_O_RSHIFTUNSIGNED: value = (unsigned)value >> shift; break;
+			}
+			a->var->setNumber(value);
 		}
 	}
 	return a;
@@ -1380,18 +1385,20 @@ ST_TinyJS_VarLink* ST_TinyJS::logic(bool* pExec) {
 	      (lex->tk == TINYJS_LEX_O_OROR)) {
 		int op = lex->tk;
 		lex->match(op);
-		bool shortCircuit = false;
-		bool isBoolean = false;
 		//If we have short-circuit ops, then if we know the outcome we don't bother to execute the other op.
 		//Even if not we need to tell mathsOp it's an & or |.
+		bool shortCircuit, isBoolean;
 		if(op == TINYJS_LEX_O_ANDAND) {
 			op = '&';
 			shortCircuit = !a->var->getBool();
-			isBoolean = true;
+			isBoolean    = true;
 		} else if(op == TINYJS_LEX_O_OROR) {
 			op = '|';
-			shortCircuit = a->var->getBool();
-			isBoolean = true;
+			shortCircuit =  a->var->getBool();
+			isBoolean    = true;
+		} else {
+			shortCircuit = false;
+			isBoolean    = false;
 		}
 		ST_TinyJS_VarLink* b = condition(shortCircuit ? &noexec : pExec);
 		if(*pExec && !shortCircuit) {
@@ -1432,28 +1439,21 @@ ST_TinyJS_VarLink* ST_TinyJS::base(bool* pExec) {
 		//If we're assigning to this and we don't have a prototype, add it to the symbol table root as per JavaScript.
 		if(*pExec) {
 			if(!lhs->owned) {
-				if(strlen(lhs->name)) {
-					ST_TinyJS_VarLink* realLhs = root->addChild(lhs->name, lhs->var);
-					lhs = realLhs;
-				} else {
-					TRACE("Trying to assign to an un-named type.\n");
+				if(!strcmp(lhs->name, "")) {
+					throw new ST_TinyJS_Exception("Trying to assign to an un-named type.");
 				}
+				lhs = root->addChild(lhs->name, lhs->var);
 			}
 		}
 		int op = lex->tk;
 		lex->match(op);
 		ST_TinyJS_VarLink* rhs = base(pExec);
 		if(*pExec) {
-			if(op == '=') {
-				lhs->replaceWith(rhs->var);
-			} else if(op == TINYJS_LEX_O_PLUSASSIGN) {
-				ST_TinyJS_Var* res = lhs->var->mathsOp(rhs->var, '+');
-				lhs->replaceWith(res);
-			} else if(op == TINYJS_LEX_O_MINUSASSIGN) {
-				ST_TinyJS_Var* res = lhs->var->mathsOp(rhs->var, '-');
-				lhs->replaceWith(res);
-			} else {
-				DIE();
+			switch(op) {
+			default:DIE();	//バグ
+			case '=':                      lhs->replaceWith(                  rhs->var      ); break;
+			case TINYJS_LEX_O_PLUSASSIGN:  lhs->replaceWith(lhs->var->mathsOp(rhs->var, '+')); break;
+			case TINYJS_LEX_O_MINUSASSIGN: lhs->replaceWith(lhs->var->mathsOp(rhs->var, '-')); break;
 			}
 		}
 	}
