@@ -69,8 +69,6 @@ int vasprintf(char** strp, const char* fmt, va_list ap);
 void qsort_r(void* base, size_t num, size_t width, int(*compare)(const void*, const void*, void*), void* arg);
 int heapsort_r(void* base, size_t num, size_t width, int (*compare)(const void*, const void*, void*), void* arg);
 int mergesort_r(void* base, size_t num, size_t width, int (*compare)(const void*, const void*, void*), void* arg);
-//clip/include/string.h
-char* strchrnul(const char* s, int c);
 //clip/include/errno.h
 #define program_invocation_name		"TinyJS"
 #define program_invocation_short_name	program_invocation_name

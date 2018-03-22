@@ -14,38 +14,38 @@
 #include "TinyJS_Functions.h"
 //-----------------------------------------------------------------------------
 //Actual Functions
-static void scTrace(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+static void scTrace(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
 	tinyJS->trace();
 }
-static void scObjectDump(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+static void scObjectDump(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
 	v->getParameter("this")->trace("> ");
 }
-static void scObjectClone(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+static void scObjectClone(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
 	ST_TinyJS_Var* obj = v->getParameter("this");
 	v->getReturnVar()->copyValue(obj);
 }
-static void scMathRand(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+static void scMathRand(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
 	v->getReturnVar()->setNumber((double)rand() / (double)RAND_MAX);
 }
-static void scMathRandInt(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+static void scMathRandInt(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
 	int min = v->getParameter("min")->getNumber();
 	int max = v->getParameter("max")->getNumber();
 	int val = min + (rand() % (1 + max - min));
 	v->getReturnVar()->setNumber(val);
 }
-static void scCharToInt(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+static void scCharToInt(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
 	const char* str = v->getParameter("ch")->getString();
 	int val = str[0];
 	v->getReturnVar()->setNumber(val);
 }
-static void scStringIndexOf(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+static void scStringIndexOf(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
 	const char* str = v->getParameter("this")->getString();
 	const char* search = v->getParameter("search")->getString();
 	const char* p = strstr(str, search);
 	int val = p ? (p - str) : -1;
 	v->getReturnVar()->setNumber(val);
 }
-static void scStringSubstring(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+static void scStringSubstring(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
 	const char* str = v->getParameter("this")->getString();
 	int lo = v->getParameter("lo")->getNumber();
 	int hi = v->getParameter("hi")->getNumber();
@@ -56,7 +56,7 @@ static void scStringSubstring(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdat
 		v->getReturnVar()->setString("");
 	}
 }
-static void scStringCharAt(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+static void scStringCharAt(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
 	const char* str = v->getParameter("this")->getString();
 	int p = v->getParameter("pos")->getNumber();
 	if(p >= 0 && p < strlen(str)) {
@@ -65,7 +65,7 @@ static void scStringCharAt(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) 
 		v->getReturnVar()->setString("");
 	}
 }
-static void scStringCharCodeAt(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+static void scStringCharCodeAt(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
 	const char* str = v->getParameter("this")->getString();
 	int p = v->getParameter("pos")->getNumber();
 	if((unsigned)p < strlen(str)) {
@@ -74,7 +74,7 @@ static void scStringCharCodeAt(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userda
 		v->getReturnVar()->setNumber(0);
 	}
 }
-static void scStringSplit(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+static void scStringSplit(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
 	const char* str = v->getParameter("this")->getString();
 	const char* sep = v->getParameter("separator")->getString();
 	ST_TinyJS_Var* result = v->getReturnVar();
@@ -92,34 +92,34 @@ static void scStringSplit(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
 		result->setArrayIndex(length++, new ST_TinyJS_Var(str));
 	}
 }
-static void scStringFromCharCode(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+static void scStringFromCharCode(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
 	const char* str = strdup_printf("%c", v->getParameter("char")->getNumber());
 	v->getReturnVar()->setString(str);
 }
-static void scIntegerParseInt(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+static void scIntegerParseInt(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
 	const char* str = v->getParameter("str")->getString();
 	int val = strtol(str, NULL, 0);
 	v->getReturnVar()->setNumber(val);
 }
-static void scIntegerValueOf(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+static void scIntegerValueOf(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
 	const char* str = v->getParameter("str")->getString();
 	int val = 0;
 	if(strlen(str) == 1) { val = str[0]; }
 	v->getReturnVar()->setNumber(val);
 }
-static void scJSONStringify(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+static void scJSONStringify(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
 	const char* result = v->getParameter("obj")->getJSON();
 	v->getReturnVar()->setString(result);
 }
-static void scExec(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+static void scExec(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
 	const char* str = v->getParameter("jsCode")->getString();
 	tinyJS->execute(str);
 }
-static void scEval(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+static void scEval(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
 	const char* str = v->getParameter("jsCode")->getString();
 	v->setReturnVar(tinyJS->evaluateComplex(str));
 }
-static void scArrayContains(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+static void scArrayContains(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
 	ST_TinyJS_Var* obj = v->getParameter("obj");
 	GSList/*<ST_TinyJS_VarLink*>*/* list = v->getParameter("this")->firstChild;
 	bool contains = false;
@@ -133,7 +133,7 @@ static void scArrayContains(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata)
 	}
 	v->getReturnVar()->setNumber(contains);
 }
-static void scArrayRemove(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+static void scArrayRemove(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
 	ST_TinyJS_Var* obj = v->getParameter("obj");
 	ST_TinyJS_Var* arr = v->getParameter("this");
 	GSList/*<ST_TinyJS_VarLink*>*/* list1 = arr->firstChild;
@@ -155,7 +155,7 @@ static void scArrayRemove(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
 		}
 	}
 }
-static void scArrayJoin(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+static void scArrayJoin(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
 	const char* sep = v->getParameter("separator")->getString();
 	ST_TinyJS_Var* arr = v->getParameter("this");
 	GString* sstr = g_string_new(NULL);

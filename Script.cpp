@@ -27,12 +27,12 @@
 //static const char code[] = "function myfunc(x,y) { return x+y; } var a=myfunc(1,2); print(a);";
 //-----------------------------------------------------------------------------
 //function print(str: string): void
-static void js_print(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+static void js_print(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
 	printf("> %s\n", v->getParameter("str")->getString());
 }
 //-----------------------------------------------------------------------------
 //function dump(): void
-static void js_dump(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+static void js_dump(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
 	tinyJS->trace();
 }
 //-----------------------------------------------------------------------------
@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
 		tinyJS->execute("var lets_quit = 0; function quit() { lets_quit = 1; }");
 		tinyJS->execute("print(\"Interactive mode... Type quit(); to exit, or print(...); to print something, or dump() to dump the symbol table!\");");
 	} catch(ST_TinyJS_Exception* e) {
-		printf("ERROR: %s\n", e->text);
+		printf("ERROR: %s\n", e->msg);
 	}
 	//quit()関数が呼び出されるまで…
 	while(tinyJS->evaluate("lets_quit") == "0") {
@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
 		try {
 			tinyJS->execute(buffer);
 		} catch(ST_TinyJS_Exception* e) {
-			printf("ERROR: %s\n", e->text);
+			printf("ERROR: %s\n", e->msg);
 		}
 	}
 	return 0;	//もし途中でエラーが発生していても、当プログラムは常に正常終了(0)を返す。

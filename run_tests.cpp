@@ -22,12 +22,12 @@
 #include <conio.h>	//_getch()
 //=============================================================================
 //function print(str: string): void
-static void js_print(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+static void js_print(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
 	printf("> %s\n", v->getParameter("str")->getString());
 }
 //-----------------------------------------------------------------------------
 //function dump(): void
-static void js_dump(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userdata) {
+static void js_dump(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
 	tinyJS->trace();
 }
 //-----------------------------------------------------------------------------
@@ -63,7 +63,7 @@ static int run_test(const char* fileName) {
 	try {
 		tinyJS->execute(buffer);
 	} catch(ST_TinyJS_Exception* e) {
-		printf("ERROR: %s\n", e->text);
+		printf("ERROR: %s\n", e->msg);
 	}
 	//テスト結果を取得する。
 	bool pass = tinyJS->root->getParameter("result")->getBool();

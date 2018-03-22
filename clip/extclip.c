@@ -19,11 +19,3 @@ int vasprintf(char** strp, const char* fmt, va_list ap) {
 	if(!*strp) { return -1; }
 	return vsprintf(*strp, fmt, ap);			//変更していない元のapをvsprintf()に渡す。
 }
-//clip/cliplibc.c
-char* strchrnul(const char* s, int c) {
-	for(;;) {
-		int tmp = *(unsigned char*)s++;
-		if((tmp == c) || !tmp) { break; }
-	}
-	return (char*)(s - 1); //strchrnul()関数は一致した文字へのポインターを返す。文字が見つからない場合は、sの末尾のヌルバイトへのポインター(つまりs+strlen(s))を返す。
-}
