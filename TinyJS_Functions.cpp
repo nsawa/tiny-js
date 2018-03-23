@@ -13,129 +13,146 @@
 #include "TinyJS.h"
 #include "TinyJS_Functions.h"
 //-----------------------------------------------------------------------------
-//Actual Functions
-static void scTrace(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
-	tinyJS->trace();
+static void scTrace(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
+	tinyJS->trace("");
 }
-static void scObjectDump(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
-	v->getParameter("this")->trace("> ");
+//-----------------------------------------------------------------------------
+static void scObjectDump(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
+	funcRoot->getParameter("this")->trace("> ", "");
 }
-static void scObjectClone(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
-	ST_TinyJS_Var* obj = v->getParameter("this");
-	v->getReturnVar()->copyValue(obj);
+//-----------------------------------------------------------------------------
+static void scObjectClone(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
+	ST_TinyJS_Var* obj = funcRoot->getParameter("this");
+	funcRoot->setReturnVar(obj->deepCopy());
 }
-static void scMathRand(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
-	v->getReturnVar()->setNumber((double)rand() / (double)RAND_MAX);
+//-----------------------------------------------------------------------------
+static void scMathRand(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
+	funcRoot->getReturnVar()->setNumber((double)rand() / (double)RAND_MAX);
 }
-static void scMathRandInt(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
-	int min = v->getParameter("min")->getNumber();
-	int max = v->getParameter("max")->getNumber();
+//-----------------------------------------------------------------------------
+static void scMathRandInt(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
+	int min = funcRoot->getParameter("min")->getNumber();
+	int max = funcRoot->getParameter("max")->getNumber();
 	int val = min + (rand() % (1 + max - min));
-	v->getReturnVar()->setNumber(val);
+	funcRoot->getReturnVar()->setNumber(val);
 }
-static void scCharToInt(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
-	const char* str = v->getParameter("ch")->getString();
+//-----------------------------------------------------------------------------
+static void scCharToInt(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
+	const char* str = funcRoot->getParameter("ch")->getString();
 	int val = str[0];
-	v->getReturnVar()->setNumber(val);
+	funcRoot->getReturnVar()->setNumber(val);
 }
-static void scStringIndexOf(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
-	const char* str = v->getParameter("this")->getString();
-	const char* search = v->getParameter("search")->getString();
+//-----------------------------------------------------------------------------
+static void scStringIndexOf(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
+	const char* str = funcRoot->getParameter("this")->getString();
+	const char* search = funcRoot->getParameter("search")->getString();
 	const char* p = strstr(str, search);
 	int val = p ? (p - str) : -1;
-	v->getReturnVar()->setNumber(val);
+	funcRoot->getReturnVar()->setNumber(val);
 }
-static void scStringSubstring(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
-	const char* str = v->getParameter("this")->getString();
-	int lo = v->getParameter("lo")->getNumber();
-	int hi = v->getParameter("hi")->getNumber();
+//-----------------------------------------------------------------------------
+static void scStringSubstring(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
+	const char* str = funcRoot->getParameter("this")->getString();
+	int lo = funcRoot->getParameter("lo")->getNumber();
+	int hi = funcRoot->getParameter("hi")->getNumber();
 	int l = hi - lo;
 	if((l > 0) && (lo >= 0) && ((lo + l) <= strlen(str))) {
-		v->getReturnVar()->setString(strndup(str + lo, l));
+		funcRoot->getReturnVar()->setString(strndup(str + lo, l));
 	} else {
-		v->getReturnVar()->setString("");
+		funcRoot->getReturnVar()->setString("");
 	}
 }
-static void scStringCharAt(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
-	const char* str = v->getParameter("this")->getString();
-	int p = v->getParameter("pos")->getNumber();
+//-----------------------------------------------------------------------------
+static void scStringCharAt(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
+	const char* str = funcRoot->getParameter("this")->getString();
+	int p = funcRoot->getParameter("pos")->getNumber();
 	if(p >= 0 && p < strlen(str)) {
-		v->getReturnVar()->setString(strndup(str + p, 1));
+		funcRoot->getReturnVar()->setString(strndup(str + p, 1));
 	} else {
-		v->getReturnVar()->setString("");
+		funcRoot->getReturnVar()->setString("");
 	}
 }
-static void scStringCharCodeAt(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
-	const char* str = v->getParameter("this")->getString();
-	int p = v->getParameter("pos")->getNumber();
+//-----------------------------------------------------------------------------
+static void scStringCharCodeAt(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
+	const char* str = funcRoot->getParameter("this")->getString();
+	int p = funcRoot->getParameter("pos")->getNumber();
 	if((unsigned)p < strlen(str)) {
-		v->getReturnVar()->setNumber(str[p]);
+		funcRoot->getReturnVar()->setNumber(str[p]);
 	} else {
-		v->getReturnVar()->setNumber(0);
+		funcRoot->getReturnVar()->setNumber(0);
 	}
 }
-static void scStringSplit(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
-	const char* str = v->getParameter("this")->getString();
-	const char* sep = v->getParameter("separator")->getString();
-	ST_TinyJS_Var* result = v->getReturnVar();
+//-----------------------------------------------------------------------------
+static void scStringSplit(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
+	const char* str = funcRoot->getParameter("this")->getString();
+	const char* sep = funcRoot->getParameter("separator")->getString();
+	ST_TinyJS_Var* result = funcRoot->getReturnVar();
 	result->setArray();
 	int length = 0;
 	const char* p = strstr(str, sep);
 	int pos = p ? (p - str) : -1;
 	while(pos != -1) {
-		result->setArrayIndex(length++, new ST_TinyJS_Var(strndup(str, pos)));
+		result->setArrayIndex(length++, ST_TinyJS_Var::newString(strndup(str, pos)));
 		str = str + (pos + 1);
 		p = strstr(str, sep);
 		pos = p ? (p - str) : -1;
 	}
 	if(strlen(str)) {
-		result->setArrayIndex(length++, new ST_TinyJS_Var(str));
+		result->setArrayIndex(length++, ST_TinyJS_Var::newString(str));
 	}
 }
-static void scStringFromCharCode(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
-	const char* str = strdup_printf("%c", v->getParameter("char")->getNumber());
-	v->getReturnVar()->setString(str);
+//-----------------------------------------------------------------------------
+static void scStringFromCharCode(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
+	const char* str = strdup_printf("%c", funcRoot->getParameter("char")->getNumber());
+	funcRoot->getReturnVar()->setString(str);
 }
-static void scIntegerParseInt(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
-	const char* str = v->getParameter("str")->getString();
+//-----------------------------------------------------------------------------
+static void scIntegerParseInt(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
+	const char* str = funcRoot->getParameter("str")->getString();
 	int val = strtol(str, NULL, 0);
-	v->getReturnVar()->setNumber(val);
+	funcRoot->getReturnVar()->setNumber(val);
 }
-static void scIntegerValueOf(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
-	const char* str = v->getParameter("str")->getString();
+//-----------------------------------------------------------------------------
+static void scIntegerValueOf(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
+	const char* str = funcRoot->getParameter("str")->getString();
 	int val = 0;
 	if(strlen(str) == 1) { val = str[0]; }
-	v->getReturnVar()->setNumber(val);
+	funcRoot->getReturnVar()->setNumber(val);
 }
-static void scJSONStringify(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
-	const char* result = v->getParameter("obj")->getJSON();
-	v->getReturnVar()->setString(result);
+//-----------------------------------------------------------------------------
+static void scJSONStringify(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
+	const char* str = funcRoot->getParameter("obj")->getJSON("");
+	funcRoot->getReturnVar()->setString(str);
 }
-static void scExec(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
-	const char* str = v->getParameter("jsCode")->getString();
+//-----------------------------------------------------------------------------
+static void scExec(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
+	const char* str = funcRoot->getParameter("jsCode")->getString();
 	tinyJS->execute(str);
 }
-static void scEval(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
-	const char* str = v->getParameter("jsCode")->getString();
-	v->setReturnVar(tinyJS->evaluateComplex(str));
+//-----------------------------------------------------------------------------
+static void scEval(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
+	const char* str = funcRoot->getParameter("jsCode")->getString();
+	funcRoot->setReturnVar(tinyJS->evaluate(str));
 }
-static void scArrayContains(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
-	ST_TinyJS_Var* obj = v->getParameter("obj");
-	GSList/*<ST_TinyJS_VarLink*>*/* list = v->getParameter("this")->firstChild;
-	bool contains = false;
+//-----------------------------------------------------------------------------
+static void scArrayContains(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
+	ST_TinyJS_Var* obj = funcRoot->getParameter("obj");
+	GSList/*<ST_TinyJS_VarLink*>*/* list = funcRoot->getParameter("this")->firstChild;
+	int contains = 0;
 	while(list) {
 		ST_TinyJS_VarLink* l = (ST_TinyJS_VarLink*)list->data;
 		if(l->var->equals(obj)) {
-			contains = true;
+			contains = 1;
 			break;
 		}
 		list = list->next;
 	}
-	v->getReturnVar()->setNumber(contains);
+	funcRoot->getReturnVar()->setNumber(contains);
 }
-static void scArrayRemove(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
-	ST_TinyJS_Var* obj = v->getParameter("obj");
-	ST_TinyJS_Var* arr = v->getParameter("this");
+//-----------------------------------------------------------------------------
+static void scArrayRemove(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
+	ST_TinyJS_Var* obj = funcRoot->getParameter("obj");
+	ST_TinyJS_Var* arr = funcRoot->getParameter("this");
 	GSList/*<ST_TinyJS_VarLink*>*/* list1 = arr->firstChild;
 	while(list1) {
 		ST_TinyJS_VarLink* l1 = (ST_TinyJS_VarLink*)list1->data;
@@ -155,16 +172,17 @@ static void scArrayRemove(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
 		}
 	}
 }
-static void scArrayJoin(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
-	const char* sep = v->getParameter("separator")->getString();
-	ST_TinyJS_Var* arr = v->getParameter("this");
+//-----------------------------------------------------------------------------
+static void scArrayJoin(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
+	const char* sep = funcRoot->getParameter("separator")->getString();
+	ST_TinyJS_Var* arr = funcRoot->getParameter("this");
 	GString* sstr = g_string_new(NULL);
 	int l = arr->getArrayLength();
 	for(int i = 0; i < l; i++) {
 		if(i) { g_string_append(sstr, sep); }
 		g_string_append(sstr, arr->getArrayIndex(i)->getString());
 	}
-	v->getReturnVar()->setString(sstr->str);
+	funcRoot->getReturnVar()->setString(sstr->str);
 }
 //-----------------------------------------------------------------------------
 //Register Functions

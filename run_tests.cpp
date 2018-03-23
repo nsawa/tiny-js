@@ -22,13 +22,13 @@
 #include <conio.h>	//_getch()
 //=============================================================================
 //function print(str: string): void
-static void js_print(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
-	printf("> %s\n", v->getParameter("str")->getString());
+static void js_print(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
+	printf("> %s\n", funcRoot->getParameter("str")->getString());
 }
 //-----------------------------------------------------------------------------
 //function dump(): void
-static void js_dump(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
-	tinyJS->trace();
+static void js_dump(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
+	tinyJS->trace("");
 }
 //-----------------------------------------------------------------------------
 static int run_test(const char* fileName) {
@@ -58,7 +58,7 @@ static int run_test(const char* fileName) {
 	tinyJS->addNative("function print(str)", js_print, NULL);
 	tinyJS->addNative("function dump()",     js_dump,  NULL);
 	//グローバルオブジェクトに、テスト結果の初期値(0:失敗)を登録する。
-	tinyJS->root->addChild("result", new ST_TinyJS_Var("0", TINYJS_VAR_NUMBER));
+	tinyJS->root->addChild("result", ST_TinyJS_Var::newNumber(0));
 	//スクリプトを実行する。
 	try {
 		tinyJS->execute(buffer);
@@ -66,7 +66,7 @@ static int run_test(const char* fileName) {
 		printf("ERROR: %s\n", e->msg);
 	}
 	//テスト結果を取得する。
-	bool pass = tinyJS->root->getParameter("result")->getBool();
+	int pass = tinyJS->root->getParameter("result")->getBoolean();
 	if(pass) {
 		printf("PASS\n");
 	} else {
@@ -74,7 +74,7 @@ static int run_test(const char* fileName) {
 		const char* buf = strdup_printf("%s.fail.js", fileName);
 		FILE* f = fopen(buf, "wt");
 		if(f) {
-			const char* symbols = tinyJS->root->getJSON();
+			const char* symbols = tinyJS->root->getJSON("");
 			fprintf(f, "%s", symbols);
 			fclose(f);
 		}

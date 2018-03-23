@@ -27,13 +27,13 @@
 //static const char code[] = "function myfunc(x,y) { return x+y; } var a=myfunc(1,2); print(a);";
 //-----------------------------------------------------------------------------
 //function print(str: string): void
-static void js_print(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
-	printf("> %s\n", v->getParameter("str")->getString());
+static void js_print(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
+	printf("> %s\n", funcRoot->getParameter("str")->getString());
 }
 //-----------------------------------------------------------------------------
 //function dump(): void
-static void js_dump(ST_TinyJS* tinyJS, ST_TinyJS_Var* v, void* userData) {
-	tinyJS->trace();
+static void js_dump(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
+	tinyJS->trace("");
 }
 //-----------------------------------------------------------------------------
 int main(int argc, char** argv) {
@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
 		printf("ERROR: %s\n", e->msg);
 	}
 	//quit()関数が呼び出されるまで…
-	while(tinyJS->evaluate("lets_quit") == "0") {
+	while(!tinyJS->evaluate("lets_quit")->getNumber()) {
 		//スクリプトを一行読み込む。
 		char buffer[2048];
 		if(!fgets(buffer, sizeof(buffer), stdin)) { break; }
