@@ -92,31 +92,31 @@ class ST_TinyJS_Lex : public gc_cleanup {
 public:
 	ST_TinyJS_Lex(const char* input, int startChar, int endChar);
 	//
-	ST_TinyJS_Lex* reset();				//Reset this lex so we can start again.
-	void match(int tkExpected);			//Lexical match wotsit.
-	static const char* getTokenStr(int token);	//Get the string representation of the given token.
+	ST_TinyJS_Lex* reset();					//Reset this lex so we can start again.
+	void TinyJS_Lex_match(int tkExpected);			//Lexical match wotsit.
+	static const char* TinyJS_Lex_getTokenStr(int token);	//Get the string representation of the given token.
 	//
-	const char* getSubString(int pos);		//Return a sub-string from the given position up until right now.
-	ST_TinyJS_Lex* getSubLex(int lastPosition);	//Return a sub-lexer from the given position up until right now.
+	const char* TinyJS_Lex_getSubString(int pos);		//Return a sub-string from the given position up until right now.
+	ST_TinyJS_Lex* TinyJS_Lex_getSubLex(int lastPosition);	//Return a sub-lexer from the given position up until right now.
 	//
-	const char* getLastPosition();			//Return a string representing the position in lines and columns of the tokenLastEnd.
-	const char* getPosition(int pos);		//Return a string representing the position in lines and columns of the character pos given.
+	const char* TinyJS_Lex_getLastPosition();		//Return a string representing the position in lines and columns of the tokenLastEnd.
+	const char* TinyJS_Lex_getPosition(int pos);		//Return a string representing the position in lines and columns of the character pos given.
 	//
-	int		tk;			//トークンの種類。(TINYJS_LEX_*,又は,その他の一文字演算子,又は,不正な文字)
-	const char*	tkStr;			//トークンの文字列。
-	int		tokenStart;		//最後に読んだトークン(=tk,tkStr)の、最初の文字の位置。
-	int		tokenEnd;		//最後に読んだトークン(=tk,tkStr)の、最後の文字の次の位置。
+	int		tk;					//トークンの種類。(TINYJS_LEX_*,又は,その他の一文字演算子,又は,不正な文字)
+	const char*	tkStr;					//トークンの文字列。
+	int		tokenStart;				//最後に読んだトークン(=tk,tkStr)の、最初の文字の位置。
+	int		tokenEnd;				//最後に読んだトークン(=tk,tkStr)の、最後の文字の次の位置。
 private:
 	//When we go into a loop, we use getSubLex() to get a lexer for just the sub-part of the relevant string.
 	//This doesn't re-allocate and copy the string, but instead copies the data pointer and sets dataOwned to false, and dataStart/dataEnd to the relevant things.
-	const char*	data;			//Data string to get tokens from.
-	int		dataStart, dataEnd;	//Start and end position in data string.
-	int		dataPos;		//Position in data (we CAN go past the end of the string here).
-	int		currCh, nextCh;		//現在の文字，次の文字。
-	int		tokenLastEnd;		//一つ前に読んだトークンの、最後の文字の次の位置。
+	const char*	data;					//Data string to get tokens from.
+	int		dataStart, dataEnd;			//Start and end position in data string.
+	int		dataPos;				//Position in data (we CAN go past the end of the string here).
+	int		currCh, nextCh;				//現在の文字，次の文字。
+	int		tokenLastEnd;				//一つ前に読んだトークンの、最後の文字の次の位置。
 	//
-	void getNextCh();
-	void getNextToken();	//Get the text token from our text string.
+	void TinyJS_Lex_getNextCh();
+	void TinyJS_Lex_getNextToken();				//Get the text token from our text string.
 };
 //*****************************************************************************
 //	ST_TinyJS_VarLink
@@ -125,9 +125,9 @@ class ST_TinyJS_VarLink : public gc_cleanup {
 public:
 	ST_TinyJS_VarLink(ST_TinyJS_Var* v);
 	//
-	void replaceWith(ST_TinyJS_Var* v);	//Replace the Variable pointed to.
-	int getIntName();			//Get the name as an integer (for arrays).
-	void setIntName(int n);			//Set the name as an integer (for arrays).
+	void TinyJS_VarLink_replaceWith(ST_TinyJS_Var* v);	//Replace the Variable pointed to.
+	int TinyJS_VarLink_getIntName();			//Get the name as an integer (for arrays).
+	void TinyJS_VarLink_setIntName(int n);			//Set the name as an integer (for arrays).
 	//
 	const char*		name;
 	ST_TinyJS_Var*		var;
@@ -139,33 +139,33 @@ public:
 //Variable class (containing a doubly-linked list of children).
 class ST_TinyJS_Var : public gc_cleanup {
 public:
-	static ST_TinyJS_Var* newUndefined();
-	static ST_TinyJS_Var* newNull();
-	static ST_TinyJS_Var* newNumber(double val);
-	static ST_TinyJS_Var* newString(const char* str);
-	static ST_TinyJS_Var* newFunction();
-	static ST_TinyJS_Var* newObject();
-	static ST_TinyJS_Var* newArray();
-	static ST_TinyJS_Var* newNative(TinyJS_Callback* callback, void* userData);
+	static ST_TinyJS_Var* TinyJS_Var_newUndefined();
+	static ST_TinyJS_Var* TinyJS_Var_newNull();
+	static ST_TinyJS_Var* TinyJS_Var_newNumber(double val);
+	static ST_TinyJS_Var* TinyJS_Var_newString(const char* str);
+	static ST_TinyJS_Var* TinyJS_Var_newFunction();
+	static ST_TinyJS_Var* TinyJS_Var_newObject();
+	static ST_TinyJS_Var* TinyJS_Var_newArray();
+	static ST_TinyJS_Var* TinyJS_Var_newNative(TinyJS_Callback* callback, void* userData);
 	//
-	void setUndefined();
-	void setNull();
-	void setNumber(double val);
-	void setString(const char* str);
-	void setFunction();
-	void setObject();
-	void setArray();
-	void setNative(TinyJS_Callback* callback, void* userData);
+	void TinyJS_Var_setUndefined();
+	void TinyJS_Var_setNull();
+	void TinyJS_Var_setNumber(double val);
+	void TinyJS_Var_setString(const char* str);
+	void TinyJS_Var_setFunction();
+	void TinyJS_Var_setObject();
+	void TinyJS_Var_setArray();
+	void TinyJS_Var_setNative(TinyJS_Callback* callback, void* userData);
 	//
-	int isUndefined() { return type == TINYJS_VAR_UNDEFINED; }
-	int isNull()      { return type == TINYJS_VAR_NULL; }
-	int isNumber()    { return type == TINYJS_VAR_NUMBER; }
-	int isString()    { return type == TINYJS_VAR_STRING; }
-	int isFunction()  { return (type == TINYJS_VAR_FUNCTION) || (type == TINYJS_VAR_NATIVE); }
-	int isObject()    { return type == TINYJS_VAR_OBJECT; }
-	int isArray()     { return type == TINYJS_VAR_ARRAY; }
-	int isNative()    { return type == TINYJS_VAR_NATIVE; }
-	int isBasic()     { return firstChild == NULL; }		//Is this *not* an array/object/etc.
+	int TinyJS_Var_isUndefined();
+	int TinyJS_Var_isNull();
+	int TinyJS_Var_isNumber();
+	int TinyJS_Var_isString();
+	int TinyJS_Var_isFunction();
+	int TinyJS_Var_isObject();
+	int TinyJS_Var_isArray();
+	int TinyJS_Var_isNative();
+	int TinyJS_Var_isPrimitive();
 	//
 	ST_TinyJS_Var* getReturnVar();					//If this is a function, get the result value (for use by native functions).
 	void setReturnVar(ST_TinyJS_Var* v);				//Set the result value. Use this when setting complex return data as it avoids a deepCopy().
@@ -177,32 +177,32 @@ public:
 	void removeLink(ST_TinyJS_VarLink* link);			//Remove a specific link (this is faster than finding via a child).
 	//
 	ST_TinyJS_Var* getArrayIndex(int i);				//The the value at an array index.
-	void setArrayIndex(int i, ST_TinyJS_Var* v);			//Set the value at an array index.
-	int getArrayLength();						//If this is an array, return the number of items in it (else 0).
+	void TinyJS_Var_setArrayIndex(int i, ST_TinyJS_Var* v);		//Set the value at an array index.
+	int TinyJS_Var_getArrayLength();				//If this is an array, return the number of items in it (else 0).
 	//
-	int getBoolean();
-	double getNumber();
-	const char* getString();
-	const char* getParsableString();				//Get data as a parsable javascript string.
+	int TinyJS_Var_getBoolean();
+	double TinyJS_Var_getNumber();
+	const char* TinyJS_Var_getString();
+	const char* TinyJS_Var_getParsableString();			//Get data as a parsable javascript string.
 	//
-	int equals(ST_TinyJS_Var* v);
-	ST_TinyJS_Var* mathsOp(ST_TinyJS_Var* v, int op);		//Do a maths op with another script variable.
-	ST_TinyJS_Var* deepCopy();					//Deep copy this node and return the result.
+	int TinyJS_Var_equals(ST_TinyJS_Var* v);
+	ST_TinyJS_Var* TinyJS_Var_mathsOp(ST_TinyJS_Var* v, int op);	//Do a maths op with another script variable.
+	ST_TinyJS_Var* TinyJS_Var_deepCopy();				//Deep copy this node and return the result.
 	//
-	void trace(const char* indent, const char* name);	//Dump out the contents of this using trace.
-	const char* getTypeAsString();					//For debugging - just dump a string version of the type.
-	const char* getJSON(const char* linePrefix);			//Write out all the JS code needed to recreate this script variable to the stream (as JSON).
+	void TinyJS_Var_trace(const char* indent, const char* name);	//Dump out the contents of this using trace.
+	const char* TinyJS_Var_getTypeAsString();			//For debugging - just dump a string version of the type.
+	const char* TinyJS_Var_getJSON(const char* linePrefix);		//Write out all the JS code needed to recreate this script variable to the stream (as JSON).
 	//
 	GSList/*<ST_TinyJS_VarLink*>*/*	firstChild;
 private:
-	int			type;		//The type determine the type of the variable - number/string/etc.
-	double			numData;	//The contents of this variable if it is a number.
-	const char*		strData;	//The contents of this variable if it is a string.
-	TinyJS_Callback*	callback;	//Callback for native functions.
-	void*			userData;	//User data passed as second argument to native functions.
+	int			type;			//The type determine the type of the variable - number/string/etc.
+	double			numData;		//The contents of this variable if it is a number.
+	const char*		strData;		//The contents of this variable if it is a string.
+	TinyJS_Callback*	callback;		//Callback for native functions.
+	void*			userData;		//User data passed as second argument to native functions.
 	//
-	ST_TinyJS_Var() { /** no job **/ }	//コンストラクタを直接呼び出さず、newUndefined()等の関数を使って下さい。
-	void init(int varType);			//Initialisation of data members.
+	ST_TinyJS_Var() { /** no job **/ }		//コンストラクタを直接呼び出さず、newUndefined()等の関数を使って下さい。
+	void TinyJS_Var_init(int varType);				//Initialisation of data members.
 	//
 	friend class ST_TinyJS;
 };
@@ -221,11 +221,11 @@ class ST_TinyJS : public gc_cleanup {
 public:
 	ST_TinyJS();
 	//
-	void execute(const char* code);
-	ST_TinyJS_Var* evaluate(const char* code);
-	void addNative(const char* funcDesc, TinyJS_Callback* callback, void* userData);
+	void TinyJS_execute(const char* code);
+	ST_TinyJS_Var* TinyJS_evaluate(const char* code);
+	void TinyJS_addNative(const char* funcDesc, TinyJS_Callback* callback, void* userData);
 	//
-	void trace(const char* indent);
+	void TinyJS_trace(const char* indent);
 	//
 	ST_TinyJS_Var*			root;		//Root of symbol table.			//※要検討:グローバルオブジェクトの事です。Webブラウザでの実装の場合「window」が、Node.jsの場合は「global」がグローバルオブジェクトとなります。rootという変数名はやめて、window,又は,globalに変える方が良いのでは？
 private:
@@ -236,25 +236,25 @@ private:
 	ST_TinyJS_Var*			objectClass;	//Built in object class.
 	ST_TinyJS_Var*			arrayClass;	//Built in array class.
 	//Parsing - in order of precedence.
-	ST_TinyJS_VarLink* functionCall(int* pExec, ST_TinyJS_VarLink* func, ST_TinyJS_Var* _this/*NULL可*/);
-	ST_TinyJS_VarLink* factor(int* pExec);
-	ST_TinyJS_VarLink* unary(int* pExec);
-	ST_TinyJS_VarLink* term(int* pExec);
-	ST_TinyJS_VarLink* expression(int* pExec);
-	ST_TinyJS_VarLink* shift(int* pExec);
-	ST_TinyJS_VarLink* condition(int* pExec);
-	ST_TinyJS_VarLink* logic(int* pExec);
-	ST_TinyJS_VarLink* ternary(int* pExec);
-	ST_TinyJS_VarLink* base(int* pExec);
-	void block(int* pExec);
-	void statement(int* pExec);
+	ST_TinyJS_VarLink* TinyJS_functionCall(int* pExec, ST_TinyJS_VarLink* func, ST_TinyJS_Var* _this/*NULL可*/);
+	ST_TinyJS_VarLink* TinyJS_factor(int* pExec);
+	ST_TinyJS_VarLink* TinyJS_unary(int* pExec);
+	ST_TinyJS_VarLink* TinyJS_term(int* pExec);
+	ST_TinyJS_VarLink* TinyJS_expression(int* pExec);
+	ST_TinyJS_VarLink* TinyJS_shift(int* pExec);
+	ST_TinyJS_VarLink* TinyJS_condition(int* pExec);
+	ST_TinyJS_VarLink* TinyJS_logic(int* pExec);
+	ST_TinyJS_VarLink* TinyJS_ternary(int* pExec);
+	ST_TinyJS_VarLink* TinyJS_base(int* pExec);
+	void TinyJS_block(int* pExec);
+	void TinyJS_statement(int* pExec);
 	//
-	ST_TinyJS_VarLink* parseFunctionDefinition();
-	void parseFunctionArguments(ST_TinyJS_Var* funcVar);
-	ST_TinyJS_VarLink* findInScopes(const char* name);
-	ST_TinyJS_VarLink* findInPrototypeClasses(ST_TinyJS_Var* v, const char* name);
-	ST_TinyJS_Context* saveContext();
-	void restoreContext(ST_TinyJS_Context* pSavedContext);
-	const char* stackTrace(const char* errMsg);
+	ST_TinyJS_VarLink* TinyJS_parseFunctionDefinition();
+	void TinyJS_parseFunctionArguments(ST_TinyJS_Var* funcVar);
+	ST_TinyJS_VarLink* TinyJS_findInScopes(const char* name);
+	ST_TinyJS_VarLink* TinyJS_findInPrototypeClasses(ST_TinyJS_Var* v, const char* name);
+	ST_TinyJS_Context* TinyJS_saveContext();
+	void TinyJS_restoreContext(ST_TinyJS_Context* pSavedContext);
+	const char* TinyJS_stackTrace(const char* errMsg);
 };
 #endif//__TINYJS_H__

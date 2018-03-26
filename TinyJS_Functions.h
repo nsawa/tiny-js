@@ -12,5 +12,5 @@
 //
 #ifndef __TINYJS_FUNCTIONS_H__
 #define __TINYJS_FUNCTIONS_H__
-void registerFunctions(ST_TinyJS* tinyJS);	//Register useful functions with the TinyJS interpreter.
+void TinyJS_registerFunctions(ST_TinyJS* tinyJS);	//Register useful functions with the TinyJS interpreter.
 #endif//__TINYJS_FUNCTIONS_H__

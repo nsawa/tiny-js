@@ -23,12 +23,12 @@
 //=============================================================================
 //function print(str: string): void
 static void js_print(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
-	printf("> %s\n", funcRoot->getParameter("str")->getString());
+	printf("> %s\n", funcRoot->getParameter("str")->TinyJS_Var_getString());
 }
 //-----------------------------------------------------------------------------
 //function dump(): void
 static void js_dump(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
-	tinyJS->trace("");
+	tinyJS->TinyJS_trace("");
 }
 //-----------------------------------------------------------------------------
 static int run_test(const char* fileName) {
@@ -53,20 +53,20 @@ static int run_test(const char* fileName) {
 	//インタプリタを作成する。
 	ST_TinyJS* tinyJS = new ST_TinyJS();
 	//関数を登録する。
-	registerFunctions(tinyJS);
-	registerMathFunctions(tinyJS);
-	tinyJS->addNative("function print(str)", js_print, NULL);
-	tinyJS->addNative("function dump()",     js_dump,  NULL);
+	TinyJS_registerFunctions(tinyJS);
+	TinyJS_registerMathFunctions(tinyJS);
+	tinyJS->TinyJS_addNative("function print(str)", js_print, NULL);
+	tinyJS->TinyJS_addNative("function dump()",     js_dump,  NULL);
 	//グローバルオブジェクトに、テスト結果の初期値(0:失敗)を登録する。
-	tinyJS->root->addChild("result", ST_TinyJS_Var::newNumber(0));
+	tinyJS->root->addChild("result", ST_TinyJS_Var::TinyJS_Var_newNumber(0));
 	//スクリプトを実行する。
 	try {
-		tinyJS->execute(buffer);
+		tinyJS->TinyJS_execute(buffer);
 	} catch(ST_TinyJS_Exception* e) {
 		printf("ERROR: %s\n", e->msg);
 	}
 	//テスト結果を取得する。
-	int pass = tinyJS->root->getParameter("result")->getBoolean();
+	int pass = tinyJS->root->getParameter("result")->TinyJS_Var_getBoolean();
 	if(pass) {
 		printf("PASS\n");
 	} else {
@@ -74,7 +74,7 @@ static int run_test(const char* fileName) {
 		const char* buf = strdup_printf("%s.fail.js", fileName);
 		FILE* f = fopen(buf, "wt");
 		if(f) {
-			const char* symbols = tinyJS->root->getJSON("");
+			const char* symbols = tinyJS->root->TinyJS_Var_getJSON("");
 			fprintf(f, "%s", symbols);
 			fclose(f);
 		}

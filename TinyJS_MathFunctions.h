@@ -12,5 +12,5 @@
 //
 #ifndef __TINYJS_MATHFUNCTIONS_H__
 #define __TINYJS_MATHFUNCTIONS_H__
-void registerMathFunctions(ST_TinyJS* tinyJS);	//Register useful math functions with the TinyJS interpreter.
+void TinyJS_registerMathFunctions(ST_TinyJS* tinyJS);	//Register useful math functions with the TinyJS interpreter.
 #endif//__TINYJS_MATHFUNCTIONS_H__

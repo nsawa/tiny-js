@@ -28,37 +28,37 @@
 //-----------------------------------------------------------------------------
 //function print(str: string): void
 static void js_print(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
-	printf("> %s\n", funcRoot->getParameter("str")->getString());
+	printf("> %s\n", funcRoot->getParameter("str")->TinyJS_Var_getString());
 }
 //-----------------------------------------------------------------------------
 //function dump(): void
 static void js_dump(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
-	tinyJS->trace("");
+	tinyJS->TinyJS_trace("");
 }
 //-----------------------------------------------------------------------------
 int main(int argc, char** argv) {
 	//インタプリタを作成する。
 	ST_TinyJS* tinyJS = new ST_TinyJS();
 	//関数を登録する。
-	registerFunctions(tinyJS);
-	registerMathFunctions(tinyJS);
-	tinyJS->addNative("function print(str)", js_print, NULL);
-	tinyJS->addNative("function dump()",     js_dump,  NULL);
+	TinyJS_registerFunctions(tinyJS);
+	TinyJS_registerMathFunctions(tinyJS);
+	tinyJS->TinyJS_addNative("function print(str)", js_print, NULL);
+	tinyJS->TinyJS_addNative("function dump()",     js_dump,  NULL);
 	//Execute out bit of code - we could call 'evaluate' here if we wanted something returned.
 	try {
-		tinyJS->execute("var lets_quit = 0; function quit() { lets_quit = 1; }");
-		tinyJS->execute("print(\"Interactive mode... Type quit(); to exit, or print(...); to print something, or dump() to dump the symbol table!\");");
+		tinyJS->TinyJS_execute("var lets_quit = 0; function quit() { lets_quit = 1; }");
+		tinyJS->TinyJS_execute("print(\"Interactive mode... Type quit(); to exit, or print(...); to print something, or dump() to dump the symbol table!\");");
 	} catch(ST_TinyJS_Exception* e) {
 		printf("ERROR: %s\n", e->msg);
 	}
 	//quit()関数が呼び出されるまで…
-	while(!tinyJS->evaluate("lets_quit")->getNumber()) {
+	while(!tinyJS->TinyJS_evaluate("lets_quit")->TinyJS_Var_getNumber()) {
 		//スクリプトを一行読み込む。
 		char buffer[2048];
 		if(!fgets(buffer, sizeof(buffer), stdin)) { break; }
 		//スクリプトを一行実行する。
 		try {
-			tinyJS->execute(buffer);
+			tinyJS->TinyJS_execute(buffer);
 		} catch(ST_TinyJS_Exception* e) {
 			printf("ERROR: %s\n", e->msg);
 		}
