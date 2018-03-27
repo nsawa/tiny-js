@@ -51,7 +51,7 @@ static int run_test(const char* fileName) {
 	fread(buffer, 1, size, fp);
 	fclose(fp);
 	//インタプリタを作成する。
-	ST_TinyJS* tinyJS = new ST_TinyJS();
+	ST_TinyJS* tinyJS = ST_TinyJS::TinyJS_new();
 	//関数を登録する。
 	TinyJS_registerFunctions(tinyJS);
 	TinyJS_registerMathFunctions(tinyJS);
@@ -60,11 +60,11 @@ static int run_test(const char* fileName) {
 	//グローバルオブジェクトに、テスト結果の初期値(0:失敗)を登録する。
 	tinyJS->root->addChild("result", ST_TinyJS_Var::TinyJS_Var_newNumber(0));
 	//スクリプトを実行する。
-	try {
+	SEH_try {
 		tinyJS->TinyJS_execute(buffer);
-	} catch(ST_TinyJS_Exception* e) {
-		printf("ERROR: %s\n", e->msg);
-	}
+	} SEH_catch(TinyJS_Exception) {
+		printf("ERROR: %s\n", SEH_info.msg);
+	} SEH_end
 	//テスト結果を取得する。
 	int pass = tinyJS->root->getParameter("result")->TinyJS_Var_getBoolean();
 	if(pass) {

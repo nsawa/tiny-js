@@ -38,30 +38,30 @@ static void js_dump(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) 
 //-----------------------------------------------------------------------------
 int main(int argc, char** argv) {
 	//インタプリタを作成する。
-	ST_TinyJS* tinyJS = new ST_TinyJS();
+	ST_TinyJS* tinyJS = ST_TinyJS::TinyJS_new();
 	//関数を登録する。
 	TinyJS_registerFunctions(tinyJS);
 	TinyJS_registerMathFunctions(tinyJS);
 	tinyJS->TinyJS_addNative("function print(str)", js_print, NULL);
 	tinyJS->TinyJS_addNative("function dump()",     js_dump,  NULL);
 	//Execute out bit of code - we could call 'evaluate' here if we wanted something returned.
-	try {
+	SEH_try {
 		tinyJS->TinyJS_execute("var lets_quit = 0; function quit() { lets_quit = 1; }");
 		tinyJS->TinyJS_execute("print(\"Interactive mode... Type quit(); to exit, or print(...); to print something, or dump() to dump the symbol table!\");");
-	} catch(ST_TinyJS_Exception* e) {
-		printf("ERROR: %s\n", e->msg);
-	}
+	} SEH_catch(TinyJS_Exception) {
+		printf("ERROR: %s\n", SEH_info.msg);
+	} SEH_end
 	//quit()関数が呼び出されるまで…
 	while(!tinyJS->TinyJS_evaluate("lets_quit")->TinyJS_Var_getNumber()) {
 		//スクリプトを一行読み込む。
 		char buffer[2048];
 		if(!fgets(buffer, sizeof(buffer), stdin)) { break; }
 		//スクリプトを一行実行する。
-		try {
+		SEH_try{
 			tinyJS->TinyJS_execute(buffer);
-		} catch(ST_TinyJS_Exception* e) {
-			printf("ERROR: %s\n", e->msg);
-		}
+		} SEH_catch(TinyJS_Exception) {
+			printf("ERROR: %s\n", SEH_info.msg);
+		} SEH_end
 	}
 	return 0;	//もし途中でエラーが発生していても、当プログラムは常に正常終了(0)を返す。
 }

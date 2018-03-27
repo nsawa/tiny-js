@@ -16,7 +16,9 @@
 //*****************************************************************************
 //	
 //*****************************************************************************
-//LEX_TYPES
+#define TinyJS_Exception		MAKEFOURCC('T','i','J','S')
+//-----------------------------------------------------------------------------
+//ST_TinyJS_Lex.tk
 #define TINYJS_LEX_EOF			0
 //ID
 #define TINYJS_LEX_ID			(UCHAR_MAX+1)
@@ -61,7 +63,7 @@
 #define TINYJS_LEX_R_VAR		(UCHAR_MAX+38)		//"var"
 #define TINYJS_LEX_R_WHILE		(UCHAR_MAX+39)		//"while"
 //-----------------------------------------------------------------------------
-//SCRIPTVAR_FLAGS
+//ST_TinyJS_Var.type
 #define TINYJS_VAR_UNDEFINED		0
 #define TINYJS_VAR_NULL			1			//It seems null is its own data type.
 #define TINYJS_VAR_NUMBER		2			//Number.
@@ -71,19 +73,56 @@
 #define TINYJS_VAR_ARRAY		6
 #define TINYJS_VAR_NATIVE		7			//To specify this is a native function.
 //-----------------------------------------------------------------------------
-class ST_TinyJS_Exception;
-class ST_TinyJS_Lex;
-class ST_TinyJS_VarLink;
-class ST_TinyJS_Var;
 class ST_TinyJS;
+class ST_TinyJS_Lex;
+class ST_TinyJS_Var;
+class ST_TinyJS_VarLink;
+struct ST_TinyJS_Context;
 typedef void TinyJS_Callback(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData);
 //*****************************************************************************
-//	ST_TinyJS_Exception
+//	ST_TinyJS
 //*****************************************************************************
-class ST_TinyJS_Exception : public gc_cleanup {
+class ST_TinyJS : public gc_cleanup {
+private:
+	ST_TinyJS();
 public:
-	ST_TinyJS_Exception(const char* errMsg);
-	const char*	msg;
+	static ST_TinyJS* TinyJS_new();
+	//
+	void TinyJS_execute(const char* code);
+	ST_TinyJS_Var* TinyJS_evaluate(const char* code);
+	void TinyJS_addNative(const char* funcDesc, TinyJS_Callback* callback, void* userData);
+	//
+	void TinyJS_trace(const char* indent);
+	//
+	ST_TinyJS_Var*			root;		//Root of symbol table.			//※要検討:グローバルオブジェクトの事です。Webブラウザでの実装の場合「window」が、Node.jsの場合は「global」がグローバルオブジェクトとなります。rootという変数名はやめて、window,又は,globalに変える方が良いのでは？
+private:
+	ST_TinyJS_Lex*			lex;		//Current lexer.
+	GSList/*<ST_TinyJS_Var*>*/*	scopes;		//Stack of scopes when parsing.		//※元は先頭がrootで末尾が現在のスタックだったが、逆にして、先頭が現在のスタックで末尾をrootにした。その方がfindInScopes()の実装上も都合が良いし、今後クロージャを作る時にも自然に実装出来るはずだ。リストの末尾方向(rootに向けての方向)へのリンクは、クロージャを作った時点から変更される事は無いので、単純にその時点でのscopesを保持すれば良くなるので。
+	GSList/*<const char*>*/*	callStack;	//Names of places called so we can show when erroring.
+	ST_TinyJS_Var*			stringClass;	//Built in string class.
+	ST_TinyJS_Var*			objectClass;	//Built in object class.
+	ST_TinyJS_Var*			arrayClass;	//Built in array class.
+	//Parsing - in order of precedence.
+	ST_TinyJS_VarLink* TinyJS_functionCall(int* pExec, ST_TinyJS_VarLink* func, ST_TinyJS_Var* _this/*NULL可*/);
+	ST_TinyJS_VarLink* TinyJS_factor(int* pExec);
+	ST_TinyJS_VarLink* TinyJS_unary(int* pExec);
+	ST_TinyJS_VarLink* TinyJS_term(int* pExec);
+	ST_TinyJS_VarLink* TinyJS_expression(int* pExec);
+	ST_TinyJS_VarLink* TinyJS_shift(int* pExec);
+	ST_TinyJS_VarLink* TinyJS_condition(int* pExec);
+	ST_TinyJS_VarLink* TinyJS_logic(int* pExec);
+	ST_TinyJS_VarLink* TinyJS_ternary(int* pExec);
+	ST_TinyJS_VarLink* TinyJS_base(int* pExec);
+	void TinyJS_block(int* pExec);
+	void TinyJS_statement(int* pExec);
+	//
+	ST_TinyJS_VarLink* TinyJS_parseFunctionDefinition();
+	void TinyJS_parseFunctionArguments(ST_TinyJS_Var* funcVar);
+	ST_TinyJS_VarLink* TinyJS_findInScopes(const char* name);
+	ST_TinyJS_VarLink* TinyJS_findInPrototypeClasses(ST_TinyJS_Var* v, const char* name);
+	ST_TinyJS_Context* TinyJS_saveContext();
+	void TinyJS_restoreContext(ST_TinyJS_Context* pSavedContext);
+	const char* TinyJS_stackTrace(const char* errMsg);
 };
 //*****************************************************************************
 //	ST_TinyJS_Lex
@@ -117,21 +156,6 @@ private:
 	//
 	void TinyJS_Lex_getNextCh();
 	void TinyJS_Lex_getNextToken();				//Get the text token from our text string.
-};
-//*****************************************************************************
-//	ST_TinyJS_VarLink
-//*****************************************************************************
-class ST_TinyJS_VarLink : public gc_cleanup {
-public:
-	ST_TinyJS_VarLink(ST_TinyJS_Var* v);
-	//
-	void TinyJS_VarLink_replaceWith(ST_TinyJS_Var* v);	//Replace the Variable pointed to.
-	int TinyJS_VarLink_getIntName();			//Get the name as an integer (for arrays).
-	void TinyJS_VarLink_setIntName(int n);			//Set the name as an integer (for arrays).
-	//
-	const char*		name;
-	ST_TinyJS_Var*		var;
-	int			owned;
 };
 //*****************************************************************************
 //	ST_TinyJS_Var
@@ -207,54 +231,26 @@ private:
 	friend class ST_TinyJS;
 };
 //*****************************************************************************
+//	ST_TinyJS_VarLink
+//*****************************************************************************
+class ST_TinyJS_VarLink : public gc_cleanup {
+public:
+	ST_TinyJS_VarLink(ST_TinyJS_Var* v);
+	//
+	void TinyJS_VarLink_replaceWith(ST_TinyJS_Var* v);	//Replace the Variable pointed to.
+	int TinyJS_VarLink_getIntName();			//Get the name as an integer (for arrays).
+	void TinyJS_VarLink_setIntName(int n);			//Set the name as an integer (for arrays).
+	//
+	const char*		name;
+	ST_TinyJS_Var*		var;
+	int			owned;
+};
+//*****************************************************************************
 //	ST_TinyJS_Context
 //*****************************************************************************
 struct ST_TinyJS_Context {
 	ST_TinyJS_Lex*			lex;		//Current lexer.
 	GSList/*<ST_TinyJS_Var*>*/*	scopes;		//Stack of scopes when parsing.		//※元は先頭がrootで末尾が現在のスタックだったが、逆にして、先頭が現在のスタックで末尾をrootにした。その方がfindInScopes()の実装上も都合が良いし、今後クロージャを作る時にも自然に実装出来るはずだ。リストの末尾方向(rootに向けての方向)へのリンクは、クロージャを作った時点から変更される事は無いので、単純にその時点でのscopesを保持すれば良くなるので。
 	GSList/*<const char*>*/*	callStack;	//Names of places called so we can show when erroring.
-};
-//*****************************************************************************
-//	ST_TinyJS
-//*****************************************************************************
-class ST_TinyJS : public gc_cleanup {
-public:
-	ST_TinyJS();
-	//
-	void TinyJS_execute(const char* code);
-	ST_TinyJS_Var* TinyJS_evaluate(const char* code);
-	void TinyJS_addNative(const char* funcDesc, TinyJS_Callback* callback, void* userData);
-	//
-	void TinyJS_trace(const char* indent);
-	//
-	ST_TinyJS_Var*			root;		//Root of symbol table.			//※要検討:グローバルオブジェクトの事です。Webブラウザでの実装の場合「window」が、Node.jsの場合は「global」がグローバルオブジェクトとなります。rootという変数名はやめて、window,又は,globalに変える方が良いのでは？
-private:
-	ST_TinyJS_Lex*			lex;		//Current lexer.
-	GSList/*<ST_TinyJS_Var*>*/*	scopes;		//Stack of scopes when parsing.		//※元は先頭がrootで末尾が現在のスタックだったが、逆にして、先頭が現在のスタックで末尾をrootにした。その方がfindInScopes()の実装上も都合が良いし、今後クロージャを作る時にも自然に実装出来るはずだ。リストの末尾方向(rootに向けての方向)へのリンクは、クロージャを作った時点から変更される事は無いので、単純にその時点でのscopesを保持すれば良くなるので。
-	GSList/*<const char*>*/*	callStack;	//Names of places called so we can show when erroring.
-	ST_TinyJS_Var*			stringClass;	//Built in string class.
-	ST_TinyJS_Var*			objectClass;	//Built in object class.
-	ST_TinyJS_Var*			arrayClass;	//Built in array class.
-	//Parsing - in order of precedence.
-	ST_TinyJS_VarLink* TinyJS_functionCall(int* pExec, ST_TinyJS_VarLink* func, ST_TinyJS_Var* _this/*NULL可*/);
-	ST_TinyJS_VarLink* TinyJS_factor(int* pExec);
-	ST_TinyJS_VarLink* TinyJS_unary(int* pExec);
-	ST_TinyJS_VarLink* TinyJS_term(int* pExec);
-	ST_TinyJS_VarLink* TinyJS_expression(int* pExec);
-	ST_TinyJS_VarLink* TinyJS_shift(int* pExec);
-	ST_TinyJS_VarLink* TinyJS_condition(int* pExec);
-	ST_TinyJS_VarLink* TinyJS_logic(int* pExec);
-	ST_TinyJS_VarLink* TinyJS_ternary(int* pExec);
-	ST_TinyJS_VarLink* TinyJS_base(int* pExec);
-	void TinyJS_block(int* pExec);
-	void TinyJS_statement(int* pExec);
-	//
-	ST_TinyJS_VarLink* TinyJS_parseFunctionDefinition();
-	void TinyJS_parseFunctionArguments(ST_TinyJS_Var* funcVar);
-	ST_TinyJS_VarLink* TinyJS_findInScopes(const char* name);
-	ST_TinyJS_VarLink* TinyJS_findInPrototypeClasses(ST_TinyJS_Var* v, const char* name);
-	ST_TinyJS_Context* TinyJS_saveContext();
-	void TinyJS_restoreContext(ST_TinyJS_Context* pSavedContext);
-	const char* TinyJS_stackTrace(const char* errMsg);
 };
 #endif//__TINYJS_H__
