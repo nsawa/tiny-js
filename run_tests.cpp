@@ -15,11 +15,7 @@
 //	This is a program to run all the tests in the tests folder...
 //
 //=============================================================================
-#include "TinyJS.h"
-#include "TinyJS_Functions.h"
-#include "TinyJS_MathFunctions.h"
-#include <io.h>		//_isatty()
-#include <conio.h>	//_getch()
+#include "app.h"
 //=============================================================================
 //function print(str: string): void
 static void js_print(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {

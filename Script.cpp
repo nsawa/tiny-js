@@ -15,11 +15,7 @@
 //	This is a simple program showing how to use TinyJS.
 //
 //=============================================================================
-#include "TinyJS.h"
-#include "TinyJS_Functions.h"
-#include "TinyJS_MathFunctions.h"
-#include <assert.h>
-#include <stdio.h>
+#include "app.h"
 //=============================================================================
 //static const char code[] = "var a=5; if(a==5) a=4; else a=3;";
 //static const char code[] = "{ var a=4; var b=1; while(a>0) { b=b*2; a=a-1; } var c=5; }";

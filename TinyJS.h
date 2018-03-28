@@ -12,7 +12,6 @@
 //
 #ifndef __TINYJS_H__
 #define __TINYJS_H__
-#include "clip/clip.h"
 #ifdef  __cplusplus
 extern "C" {
 #endif//__cplusplus
