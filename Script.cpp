@@ -28,7 +28,7 @@
 //-----------------------------------------------------------------------------
 //function print(str: string): void
 static void js_print(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
-	printf("> %s\n", funcRoot->getParameter("str")->TinyJS_Var_getString());
+	printf("> %s\n", funcRoot->TinyJS_Var_getParameter("str")->TinyJS_Var_getString());
 }
 //-----------------------------------------------------------------------------
 //function dump(): void

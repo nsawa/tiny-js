@@ -23,7 +23,7 @@
 //=============================================================================
 //function print(str: string): void
 static void js_print(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
-	printf("> %s\n", funcRoot->getParameter("str")->TinyJS_Var_getString());
+	printf("> %s\n", funcRoot->TinyJS_Var_getParameter("str")->TinyJS_Var_getString());
 }
 //-----------------------------------------------------------------------------
 //function dump(): void
@@ -58,7 +58,7 @@ static int run_test(const char* fileName) {
 	tinyJS->TinyJS_addNative("function print(str)", js_print, NULL);
 	tinyJS->TinyJS_addNative("function dump()",     js_dump,  NULL);
 	//グローバルオブジェクトに、テスト結果の初期値(0:失敗)を登録する。
-	tinyJS->root->addChild("result", ST_TinyJS_Var::TinyJS_Var_newNumber(0));
+	tinyJS->root->TinyJS_Var_addChild("result", ST_TinyJS_Var::TinyJS_Var_newNumber(0));
 	//スクリプトを実行する。
 	SEH_try {
 		tinyJS->TinyJS_execute(buffer);
@@ -66,7 +66,7 @@ static int run_test(const char* fileName) {
 		printf("ERROR: %s\n", SEH_info.msg);
 	} SEH_end
 	//テスト結果を取得する。
-	int pass = tinyJS->root->getParameter("result")->TinyJS_Var_getBoolean();
+	int pass = tinyJS->root->TinyJS_Var_getParameter("result")->TinyJS_Var_getBoolean();
 	if(pass) {
 		printf("PASS\n");
 	} else {
