@@ -12,5 +12,11 @@
 //
 #ifndef __TINYJS_FUNCTIONS_H__
 #define __TINYJS_FUNCTIONS_H__
+#ifdef  __cplusplus
+extern "C" {
+#endif//__cplusplus
 void TinyJS_registerFunctions(ST_TinyJS* tinyJS);	//Register useful functions with the TinyJS interpreter.
+#ifdef  __cplusplus
+}//extern "C"
+#endif//__cplusplus
 #endif//__TINYJS_FUNCTIONS_H__

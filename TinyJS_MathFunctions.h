@@ -12,5 +12,11 @@
 //
 #ifndef __TINYJS_MATHFUNCTIONS_H__
 #define __TINYJS_MATHFUNCTIONS_H__
+#ifdef  __cplusplus
+extern "C" {
+#endif//__cplusplus
 void TinyJS_registerMathFunctions(ST_TinyJS* tinyJS);	//Register useful math functions with the TinyJS interpreter.
+#ifdef  __cplusplus
+}//extern "C"
+#endif//__cplusplus
 #endif//__TINYJS_MATHFUNCTIONS_H__

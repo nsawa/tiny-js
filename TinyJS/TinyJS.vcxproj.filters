@@ -18,15 +18,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\TinyJS.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="..\TinyJS_Functions.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="..\TinyJS_MathFunctions.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="..\clip\clipdie.c">
       <Filter>clip</Filter>
     </ClCompile>
@@ -65,6 +56,15 @@
     </ClCompile>
     <ClCompile Include="..\clip\strv.c">
       <Filter>clip</Filter>
+    </ClCompile>
+    <ClCompile Include="..\TinyJS.c">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="..\TinyJS_Functions.c">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="..\TinyJS_MathFunctions.c">
+      <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

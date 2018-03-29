@@ -136,9 +136,9 @@
     <ClCompile Include="..\clip\gslist.c" />
     <ClCompile Include="..\clip\gstring.c" />
     <ClCompile Include="..\clip\strv.c" />
-    <ClCompile Include="..\TinyJS.cpp" />
-    <ClCompile Include="..\TinyJS_Functions.cpp" />
-    <ClCompile Include="..\TinyJS_MathFunctions.cpp" />
+    <ClCompile Include="..\TinyJS.c" />
+    <ClCompile Include="..\TinyJS_Functions.c" />
+    <ClCompile Include="..\TinyJS_MathFunctions.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\clip\clip.h" />
