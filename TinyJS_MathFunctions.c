@@ -111,11 +111,13 @@ static void scMathSinh(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userDat
 	TinyJS_Var_setNumber(TinyJS_Var_getReturnVar(funcRoot), sinh(a));
 }
 //-----------------------------------------------------------------------------
+#if     (defined(_MSC_VER) && (_MSC_VER > 1200))	//Visual C++ .NET
 //Math.asinh(a) - Returns trig. hyperbolic arcsine of given angle in radians.
 static void scMathASinh(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
 	double a = TinyJS_Var_getNumber(TinyJS_Var_getParameter(funcRoot, "a"));
 	TinyJS_Var_setNumber(TinyJS_Var_getReturnVar(funcRoot), asinh(a));
 }
+#endif//(defined(_MSC_VER) && (_MSC_VER > 1200))
 //-----------------------------------------------------------------------------
 //Math.cosh(a) - Returns trig. hyperbolic cosine of given angle in radians.
 static void scMathCosh(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
@@ -123,11 +125,13 @@ static void scMathCosh(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userDat
 	TinyJS_Var_setNumber(TinyJS_Var_getReturnVar(funcRoot), cosh(a));
 }
 //-----------------------------------------------------------------------------
+#if     (defined(_MSC_VER) && (_MSC_VER > 1200))	//Visual C++ .NET
 //Math.acosh(a) - Returns trig. hyperbolic arccosine of given angle in radians.
 static void scMathACosh(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
 	double a = TinyJS_Var_getNumber(TinyJS_Var_getParameter(funcRoot, "a"));
 	TinyJS_Var_setNumber(TinyJS_Var_getReturnVar(funcRoot), acosh(a));
 }
+#endif//(defined(_MSC_VER) && (_MSC_VER > 1200))
 //-----------------------------------------------------------------------------
 //Math.tanh(a) - Returns trig. hyperbolic tangent of given angle in radians.
 static void scMathTanh(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
@@ -202,9 +206,13 @@ void TinyJS_registerMathFunctions(ST_TinyJS* tinyJS) {
 	TinyJS_addNative(tinyJS, "function Math.tan(a)",       scMathTan,       NULL);
 	TinyJS_addNative(tinyJS, "function Math.atan(a)",      scMathATan,      NULL);
 	TinyJS_addNative(tinyJS, "function Math.sinh(a)",      scMathSinh,      NULL);
+#if     (defined(_MSC_VER) && (_MSC_VER > 1200))	//Visual C++ .NET
 	TinyJS_addNative(tinyJS, "function Math.asinh(a)",     scMathASinh,     NULL);
+#endif//(defined(_MSC_VER) && (_MSC_VER > 1200))
 	TinyJS_addNative(tinyJS, "function Math.cosh(a)",      scMathCosh,      NULL);
+#if     (defined(_MSC_VER) && (_MSC_VER > 1200))	//Visual C++ .NET
 	TinyJS_addNative(tinyJS, "function Math.acosh(a)",     scMathACosh,     NULL);
+#endif//(defined(_MSC_VER) && (_MSC_VER > 1200))
 	TinyJS_addNative(tinyJS, "function Math.tanh(a)",      scMathTanh,      NULL);
 	TinyJS_addNative(tinyJS, "function Math.atanh(a)",     scMathATanh,     NULL);
 	TinyJS_addNative(tinyJS, "function Math.E()",          scMathE,         NULL);

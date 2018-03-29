@@ -102,17 +102,19 @@ static void scStringSplit(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* user
 	const char* sep = TinyJS_Var_getString(TinyJS_Var_getParameter(funcRoot, "separator"));
 	ST_TinyJS_Var* result = TinyJS_Var_getReturnVar(funcRoot);
 	TinyJS_Var_setArray(result);
-	int length = 0;
-	const char* p = strstr(str, sep);
-	int pos = p ? (p - str) : -1;
-	while(pos != -1) {
-		TinyJS_Var_setArrayIndex(result, length++, TinyJS_Var_newString(strndup(str, pos)));
-		str = str + (pos + 1);
-		p = strstr(str, sep);
-		pos = p ? (p - str) : -1;
-	}
-	if(strlen(str)) {
-		TinyJS_Var_setArrayIndex(result, length++, TinyJS_Var_newString(str));
+	{
+		int length = 0;
+		const char* p = strstr(str, sep);
+		int pos = p ? (p - str) : -1;
+		while(pos != -1) {
+			TinyJS_Var_setArrayIndex(result, length++, TinyJS_Var_newString(strndup(str, pos)));
+			str = str + (pos + 1);
+			p = strstr(str, sep);
+			pos = p ? (p - str) : -1;
+		}
+		if(strlen(str)) {
+			TinyJS_Var_setArrayIndex(result, length++, TinyJS_Var_newString(str));
+		}
 	}
 }
 //-----------------------------------------------------------------------------
@@ -177,7 +179,8 @@ static void scArrayJoin(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userDa
 	ST_TinyJS_Var* arr = TinyJS_Var_getParameter(funcRoot, "this");
 	GString* sstr = g_string_new(NULL);
 	int l = TinyJS_Var_getArrayLength(arr);
-	for(int i = 0; i < l; i++) {
+	int i;
+	for(i = 0; i < l; i++) {
 		if(i) { g_string_append(sstr, sep); }
 		g_string_append(sstr, TinyJS_Var_getString(TinyJS_Var_getArrayIndex(arr, i)));
 	}

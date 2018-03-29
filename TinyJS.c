@@ -121,23 +121,31 @@ void TinyJS_addNative(ST_TinyJS* _this, const char* funcDesc, TinyJS_Callback* c
 		//{{InitContext
 		_this->lex = TinyJS_Lex_new(funcDesc, 0, strlen(funcDesc));
 		//}}InitContext
-		ST_TinyJS_Var* base = _this->root;
-		TinyJS_Lex_match(_this->lex, TINYJS_LEX_R_FUNCTION);
-		const char* funcName = _this->lex->tkStr;
-		TinyJS_Lex_match(_this->lex, TINYJS_LEX_ID);
-		//Check for dots, we might want to do something like function String.substring ...
-		while(_this->lex->tk == '.') {
-			TinyJS_Lex_match(_this->lex, '.');
-			ST_TinyJS_VarLink* l = TinyJS_Var_findChild(base, funcName);
-			//If it doesn't exist, make an object class.
-			if(!l) { l = TinyJS_Var_addChild(base, funcName, TinyJS_Var_newObject()); }
-			base = l->var;
-			funcName = _this->lex->tkStr;
-			TinyJS_Lex_match(_this->lex, TINYJS_LEX_ID);
+		{
+			ST_TinyJS_Var* base = _this->root;
+			TinyJS_Lex_match(_this->lex, TINYJS_LEX_R_FUNCTION);
+			{
+				const char* funcName = _this->lex->tkStr;
+				TinyJS_Lex_match(_this->lex, TINYJS_LEX_ID);
+				//Check for dots, we might want to do something like function String.substring ...
+				while(_this->lex->tk == '.') {
+					TinyJS_Lex_match(_this->lex, '.');
+					{
+						ST_TinyJS_VarLink* l = TinyJS_Var_findChild(base, funcName);
+						//If it doesn't exist, make an object class.
+						if(!l) { l = TinyJS_Var_addChild(base, funcName, TinyJS_Var_newObject()); }
+						base = l->var;
+					}
+					funcName = _this->lex->tkStr;
+					TinyJS_Lex_match(_this->lex, TINYJS_LEX_ID);
+				}
+				{
+					ST_TinyJS_Var* funcVar = TinyJS_Var_newNative(callback, userData);
+					TinyJS_parseFunctionArguments(_this, funcVar);
+					TinyJS_Var_addChild(base, funcName, funcVar);
+				}
+			}
 		}
-		ST_TinyJS_Var* funcVar = TinyJS_Var_newNative(callback, userData);
-		TinyJS_parseFunctionArguments(_this, funcVar);
-		TinyJS_Var_addChild(base, funcName, funcVar);
 	}
 	TinyJS_restoreContext(_this, pSavedContext);
 }
@@ -155,57 +163,63 @@ ST_TinyJS_VarLink* TinyJS_functionCall(ST_TinyJS* _this, int* pExec, ST_TinyJS_V
 			SEH_throw_msg(TinyJS_Exception, strdup_printf("Expecting '%s' to be a function.", func->name));
 		}
 		TinyJS_Lex_match(_this->lex, '(');
-		//Create a new symbol table entry for execution of this function.
-		ST_TinyJS_Var* funcRoot = TinyJS_Var_newObject();
-		if(obj) {
-			TinyJS_Var_addChild(funcRoot, "this", obj);
-		}
-		//Grab in all parameters.
-		GSList/*<ST_TinyJS_VarLink*>*/* list = func->var->firstChild;
-		while(list) {
-			ST_TinyJS_VarLink* l = (ST_TinyJS_VarLink*)list->data;
-			ST_TinyJS_VarLink* tmp = TinyJS_base(_this, pExec);
-			if(*pExec) {
-				if(TinyJS_Var_isPrimitive(tmp->var)) {
-					//pass by value
-					TinyJS_Var_addChild(funcRoot, l->name, TinyJS_Var_deepCopy(tmp->var));
-				} else {
-					//pass by reference
-					TinyJS_Var_addChild(funcRoot, l->name, tmp->var);
+		{
+			//Create a new symbol table entry for execution of this function.
+			ST_TinyJS_Var* funcRoot = TinyJS_Var_newObject();
+			if(obj) {
+				TinyJS_Var_addChild(funcRoot, "this", obj);
+			}
+			{
+				//Grab in all parameters.
+				GSList/*<ST_TinyJS_VarLink*>*/* list = func->var->firstChild;
+				while(list) {
+					ST_TinyJS_VarLink* l = (ST_TinyJS_VarLink*)list->data;
+					ST_TinyJS_VarLink* tmp = TinyJS_base(_this, pExec);
+					if(*pExec) {
+						if(TinyJS_Var_isPrimitive(tmp->var)) {
+							//pass by value
+							TinyJS_Var_addChild(funcRoot, l->name, TinyJS_Var_deepCopy(tmp->var));
+						} else {
+							//pass by reference
+							TinyJS_Var_addChild(funcRoot, l->name, tmp->var);
+						}
+					}
+					if(list->next) { TinyJS_Lex_match(_this->lex, ','); }
+					list = list->next;
 				}
 			}
-			if(list->next) { TinyJS_Lex_match(_this->lex, ','); }
-			list = list->next;
-		}
-		TinyJS_Lex_match(_this->lex, ')');
-		//Execute function!
-		//Add the function's execute space to the symbol table so we can recurse.
-		ST_TinyJS_VarLink* returnVarLink = TinyJS_Var_addChild(funcRoot, "return", TinyJS_Var_newUndefined());
-		ST_TinyJS_Context* pSavedContext = TinyJS_saveContext(_this);
-		{
-			//We just want to execute the block, but something could have messed up and left us with the wrong ScriptLex, so we want to be careful here...
-			const char* funcBody = TinyJS_Var_getString(func->var);
-			//{{InitContext
-			_this->lex       = TinyJS_Lex_new(funcBody, 0, strlen(funcBody));
-			_this->scopes    = g_slist_prepend(_this->scopes, funcRoot);
-			_this->callStack = g_slist_prepend(_this->callStack, strdup_printf("%s from %s", func->name, TinyJS_Lex_getLastPosition(_this->lex)));
-			//}}InitContext
-			SEH_try {
-				if(TinyJS_Var_isNative(func->var)) {
-					(*func->var->callback)(_this, funcRoot, func->var->userData);
-				} else {
-					TinyJS_block(_this, pExec);
-					//Because return will probably have called this, and set execute to false.
-					*pExec = 1;
+			TinyJS_Lex_match(_this->lex, ')');
+			{
+				//Execute function!
+				//Add the function's execute space to the symbol table so we can recurse.
+				ST_TinyJS_VarLink* returnVarLink = TinyJS_Var_addChild(funcRoot, "return", TinyJS_Var_newUndefined());
+				ST_TinyJS_Context* pSavedContext = TinyJS_saveContext(_this);
+				{
+					//We just want to execute the block, but something could have messed up and left us with the wrong ScriptLex, so we want to be careful here...
+					const char* funcBody = TinyJS_Var_getString(func->var);
+					//{{InitContext
+					_this->lex       = TinyJS_Lex_new(funcBody, 0, strlen(funcBody));
+					_this->scopes    = g_slist_prepend(_this->scopes, funcRoot);
+					_this->callStack = g_slist_prepend(_this->callStack, strdup_printf("%s from %s", func->name, TinyJS_Lex_getLastPosition(_this->lex)));
+					//}}InitContext
+					SEH_try {
+						if(TinyJS_Var_isNative(func->var)) {
+							(*func->var->callback)(_this, funcRoot, func->var->userData);
+						} else {
+							TinyJS_block(_this, pExec);
+							//Because return will probably have called this, and set execute to false.
+							*pExec = 1;
+						}
+					} SEH_catch(TinyJS_Exception) {
+						TinyJS_restoreContext(_this, pSavedContext);
+						SEH_throw_last;
+					} SEH_end
 				}
-			} SEH_catch(TinyJS_Exception) {
 				TinyJS_restoreContext(_this, pSavedContext);
-				SEH_throw_last;
-			} SEH_end
+			//不要	funcRoot->TinyJS_Var_removeLink(returnVarLink);	⇒funcRootは当関数内を抜けたら無効なので、クリーンアップする必要も無い。
+				return returnVarLink;
+			}
 		}
-		TinyJS_restoreContext(_this, pSavedContext);
-	//不要	funcRoot->TinyJS_Var_removeLink(returnVarLink);	⇒funcRootは当関数内を抜けたら無効なので、クリーンアップする必要も無い。
-		return returnVarLink;
 	} else {
 		//Function, but not executing - just parse args and be done.
 		TinyJS_Lex_match(_this->lex, '(');
@@ -226,9 +240,11 @@ ST_TinyJS_VarLink* TinyJS_factor(ST_TinyJS* _this, int* pExec) {
 	//(～)
 	if(_this->lex->tk == '(') {
 		TinyJS_Lex_match(_this->lex, '(');
-		ST_TinyJS_VarLink* a = TinyJS_base(_this, pExec);
-		TinyJS_Lex_match(_this->lex, ')');
-		return a;
+		{
+			ST_TinyJS_VarLink* a = TinyJS_base(_this, pExec);
+			TinyJS_Lex_match(_this->lex, ')');
+			return a;
+		}
 	//true
 	} else if(_this->lex->tk == TINYJS_LEX_R_TRUE) {
 		TinyJS_Lex_match(_this->lex, TINYJS_LEX_R_TRUE);
@@ -258,75 +274,92 @@ ST_TinyJS_VarLink* TinyJS_factor(ST_TinyJS* _this, int* pExec) {
 			a->name = _this->lex->tkStr;
 		}
 		TinyJS_Lex_match(_this->lex, TINYJS_LEX_ID);
-		//ID(～),又は,ID.ID,又は,ID[～]を、IDに還元して繰り返す。
-		ST_TinyJS_Var* obj = NULL;	//The 'this' if we're executing a method call.
-		while((_this->lex->tk == '(') ||
-		      (_this->lex->tk == '.') ||
-		      (_this->lex->tk == '[')) {
-			switch(_this->lex->tk) {
-			default:DIE();	//バグ
-			//Function Call.
-			case '(':
-				{
-					a = TinyJS_functionCall(_this, pExec, a, obj);
-				}
-				break;
-			//Record Access.
-			case '.':
-				{
-					TinyJS_Lex_match(_this->lex, '.');
-					if(*pExec) {
-						const char* name = _this->lex->tkStr;
-						ST_TinyJS_VarLink* l = TinyJS_Var_findChild(a->var, name);
-						if(!l) { l = TinyJS_findInPrototypeClasses(_this, a->var, name); }
-						if(!l) {
-							//If we haven't found this defined yet, use the built-in 'length' properly.
-							if(TinyJS_Var_isArray(a->var) && !strcmp(name, "length")) {
-								int len = TinyJS_Var_getArrayLength(a->var);
-								l = TinyJS_VarLink_new(TinyJS_Var_newNumber(len));
-							} else if(TinyJS_Var_isString(a->var) && !strcmp(name, "length")) {
-								int len = strlen(TinyJS_Var_getString(a->var));
-								l = TinyJS_VarLink_new(TinyJS_Var_newNumber(len));
-							} else {
-								l = TinyJS_Var_addChild(a->var, name, TinyJS_Var_newUndefined());
+		{
+			//ID(～),又は,ID.ID,又は,ID[～]を、IDに還元して繰り返す。
+			ST_TinyJS_Var* obj = NULL;	//The 'this' if we're executing a method call.
+			while((_this->lex->tk == '(') ||
+			      (_this->lex->tk == '.') ||
+			      (_this->lex->tk == '[')) {
+				switch(_this->lex->tk) {
+				default:DIE();	//バグ
+				//Function Call.
+				case '(':
+					{
+						a = TinyJS_functionCall(_this, pExec, a, obj);
+					}
+					break;
+				//Record Access.
+				case '.':
+					{
+						TinyJS_Lex_match(_this->lex, '.');
+						if(*pExec) {
+							const char* name = _this->lex->tkStr;
+							ST_TinyJS_VarLink* l = TinyJS_Var_findChild(a->var, name);
+							if(!l) { l = TinyJS_findInPrototypeClasses(_this, a->var, name); }
+							if(!l) {
+								//If we haven't found this defined yet, use the built-in 'length' properly.
+								if(TinyJS_Var_isArray(a->var) && !strcmp(name, "length")) {
+									int len = TinyJS_Var_getArrayLength(a->var);
+									l = TinyJS_VarLink_new(TinyJS_Var_newNumber(len));
+								} else if(TinyJS_Var_isString(a->var) && !strcmp(name, "length")) {
+									int len = strlen(TinyJS_Var_getString(a->var));
+									l = TinyJS_VarLink_new(TinyJS_Var_newNumber(len));
+								} else {
+									l = TinyJS_Var_addChild(a->var, name, TinyJS_Var_newUndefined());
+								}
+							}
+							obj = a->var;
+							a = l;
+						}
+						TinyJS_Lex_match(_this->lex, TINYJS_LEX_ID);
+					}
+					break;
+				//Array Access.
+				case '[':
+					{
+						TinyJS_Lex_match(_this->lex, '[');
+						{
+							ST_TinyJS_VarLink* index = TinyJS_base(_this, pExec);
+							TinyJS_Lex_match(_this->lex, ']');
+							if(*pExec) {
+								ST_TinyJS_VarLink* l = TinyJS_Var_findChildOrCreate(a->var, TinyJS_Var_getString(index->var));
+								obj = a->var;
+								a = l;
 							}
 						}
-						obj = a->var;
-						a = l;
 					}
-					TinyJS_Lex_match(_this->lex, TINYJS_LEX_ID);
+					break;
 				}
-				break;
-			//Array Access.
-			case '[':
-				{
-					TinyJS_Lex_match(_this->lex, '[');
-					ST_TinyJS_VarLink* index = TinyJS_base(_this, pExec);
-					TinyJS_Lex_match(_this->lex, ']');
-					if(*pExec) {
-						ST_TinyJS_VarLink* l = TinyJS_Var_findChildOrCreate(a->var, TinyJS_Var_getString(index->var));
-						obj = a->var;
-						a = l;
-					}
-				}
-				break;
 			}
 		}
 		return a;
 	//数値リテラル
 	} else if(_this->lex->tk == TINYJS_LEX_L_NUM) {
-		//strtod()は10進実数と16進整数を解釈するが、8進整数を解釈しないので、8進整数のみ明示的に変換する事にした。
 		double value;
 		char* endptr;
+#if     (defined(_MSC_VER) && (_MSC_VER > 1200))	//Visual C++ .NET
+		//strtod()は10進実数と16進整数を解釈するが、8進整数を解釈しないので、8進整数は明示的に変換する事にした。
 		if((_this->lex->tkStr[0] == '0') && (strspn(_this->lex->tkStr, "01234567") == strlen(_this->lex->tkStr))) {
 			value = strtoul(_this->lex->tkStr, &endptr, 8);
 		} else {
 			value = strtod(_this->lex->tkStr, &endptr);
 		}
+#else //(defined(_MSC_VER) && (_MSC_VER > 1200))	//Visual C++ 6.0 or P/ECE開発環境
+		//strtod()は10進実数を解釈するが、8進整数と16進整数を解釈しないので、8進整数と16進整数は明示的に変換する事にした。
+		if((_this->lex->tkStr[0] == '0') && (strspn(_this->lex->tkStr, "01234567") == strlen(_this->lex->tkStr))) {
+			value = strtoul(_this->lex->tkStr, &endptr, 8);
+		} else if((_this->lex->tkStr[0] == '0') && ((_this->lex->tkStr[1] == 'x') || (_this->lex->tkStr[1] == 'X'))) {
+			value = strtoul(_this->lex->tkStr, &endptr, 16);
+		} else {
+			value = strtod(_this->lex->tkStr, &endptr);
+		}
+#endif//(defined(_MSC_VER) && (_MSC_VER > 1200))
 		if(*endptr) { DIE(); }	//バグ
-		ST_TinyJS_Var* v = TinyJS_Var_newNumber(value);
-		TinyJS_Lex_match(_this->lex, TINYJS_LEX_L_NUM);
-		return TinyJS_VarLink_new(v);
+		{
+			ST_TinyJS_Var* v = TinyJS_Var_newNumber(value);
+			TinyJS_Lex_match(_this->lex, TINYJS_LEX_L_NUM);
+			return TinyJS_VarLink_new(v);
+		}
 	//文字列リテラル
 	} else if(_this->lex->tk == TINYJS_LEX_L_STR) {
 		ST_TinyJS_Var* v = TinyJS_Var_newString(_this->lex->tkStr);
@@ -335,31 +368,37 @@ ST_TinyJS_VarLink* TinyJS_factor(ST_TinyJS* _this, int* pExec) {
 	//「{id:value,...}」
 	} else if(_this->lex->tk == '{') {
 		TinyJS_Lex_match(_this->lex, '{');
-		ST_TinyJS_Var* contents = TinyJS_Var_newObject();
-		while(_this->lex->tk != '}') {
-			const char* id = _this->lex->tkStr;
-			//We only allow strings or IDs on the left hand side of an initialisation.
-			TinyJS_Lex_match(_this->lex, (_this->lex->tk == TINYJS_LEX_ID) ? TINYJS_LEX_ID : TINYJS_LEX_L_STR);
-			TinyJS_Lex_match(_this->lex, ':');
-			ST_TinyJS_VarLink* l = TinyJS_base(_this, pExec);
-			TinyJS_Var_addChild(contents, id, l->var);
-			if(_this->lex->tk != '}') { TinyJS_Lex_match(_this->lex, ','); }
+		{
+			ST_TinyJS_Var* contents = TinyJS_Var_newObject();
+			while(_this->lex->tk != '}') {
+				const char* id = _this->lex->tkStr;
+				//We only allow strings or IDs on the left hand side of an initialisation.
+				TinyJS_Lex_match(_this->lex, (_this->lex->tk == TINYJS_LEX_ID) ? TINYJS_LEX_ID : TINYJS_LEX_L_STR);
+				TinyJS_Lex_match(_this->lex, ':');
+				{
+					ST_TinyJS_VarLink* l = TinyJS_base(_this, pExec);
+					TinyJS_Var_addChild(contents, id, l->var);
+				}
+				if(_this->lex->tk != '}') { TinyJS_Lex_match(_this->lex, ','); }
+			}
+			TinyJS_Lex_match(_this->lex, '}');
+			return TinyJS_VarLink_new(contents);
 		}
-		TinyJS_Lex_match(_this->lex, '}');
-		return TinyJS_VarLink_new(contents);
 	//「[value,...]」
 	} else if(_this->lex->tk == '[') {
 		TinyJS_Lex_match(_this->lex, '[');
-		ST_TinyJS_Var* contents = TinyJS_Var_newArray();
-		int i = 0;
-		while(_this->lex->tk != ']') {
-			ST_TinyJS_VarLink* l = TinyJS_base(_this, pExec);
-			TinyJS_Var_addChild(contents, strdup_printf("%d", i), l->var);
-			if(_this->lex->tk != ']') { TinyJS_Lex_match(_this->lex, ','); }
-			i++;
+		{
+			ST_TinyJS_Var* contents = TinyJS_Var_newArray();
+			int i = 0;
+			while(_this->lex->tk != ']') {
+				ST_TinyJS_VarLink* l = TinyJS_base(_this, pExec);
+				TinyJS_Var_addChild(contents, strdup_printf("%d", i), l->var);
+				if(_this->lex->tk != ']') { TinyJS_Lex_match(_this->lex, ','); }
+				i++;
+			}
+			TinyJS_Lex_match(_this->lex, ']');
+			return TinyJS_VarLink_new(contents);
 		}
-		TinyJS_Lex_match(_this->lex, ']');
-		return TinyJS_VarLink_new(contents);
 	//「function(仮引数名,...){～}」
 	} else if(_this->lex->tk == TINYJS_LEX_R_FUNCTION) {
 		ST_TinyJS_VarLink* funcDef = TinyJS_parseFunctionDefinition(_this);
@@ -370,30 +409,34 @@ ST_TinyJS_VarLink* TinyJS_factor(ST_TinyJS* _this, int* pExec) {
 	//「new 関数名(～)」,又は,「new プロトタイプ名」,又は,「new プロトタイプ名()」
 	} else if(_this->lex->tk == TINYJS_LEX_R_NEW) {
 		TinyJS_Lex_match(_this->lex, TINYJS_LEX_R_NEW);
-		const char* className = _this->lex->tkStr;
-		TinyJS_Lex_match(_this->lex, TINYJS_LEX_ID);
-		ST_TinyJS_Var* obj = TinyJS_Var_newObject();
-		if(*pExec) {
-			ST_TinyJS_VarLink* objClassOrFunc = TinyJS_findInScopes(_this, className);
-			if(!objClassOrFunc) {
-				SEH_throw_msg(TinyJS_Exception, strdup_printf("%s is not a valid class name.", className));
-			}
-			if(TinyJS_Var_isFunction(objClassOrFunc->var)) {
-				TinyJS_functionCall(_this, pExec, objClassOrFunc, obj);
-			} else {
-				TinyJS_Var_addChild(obj, "prototype", objClassOrFunc->var);
-				if(_this->lex->tk == '(') {
-					TinyJS_Lex_match(_this->lex, '(');
-					TinyJS_Lex_match(_this->lex, ')');
+		{
+			const char* className = _this->lex->tkStr;
+			TinyJS_Lex_match(_this->lex, TINYJS_LEX_ID);
+			{
+				ST_TinyJS_Var* obj = TinyJS_Var_newObject();
+				if(*pExec) {
+					ST_TinyJS_VarLink* objClassOrFunc = TinyJS_findInScopes(_this, className);
+					if(!objClassOrFunc) {
+						SEH_throw_msg(TinyJS_Exception, strdup_printf("%s is not a valid class name.", className));
+					}
+					if(TinyJS_Var_isFunction(objClassOrFunc->var)) {
+						TinyJS_functionCall(_this, pExec, objClassOrFunc, obj);
+					} else {
+						TinyJS_Var_addChild(obj, "prototype", objClassOrFunc->var);
+						if(_this->lex->tk == '(') {
+							TinyJS_Lex_match(_this->lex, '(');
+							TinyJS_Lex_match(_this->lex, ')');
+						}
+					}
+				} else {
+					if(_this->lex->tk == '(') {
+						TinyJS_Lex_match(_this->lex, '(');
+						TinyJS_Lex_match(_this->lex, ')');
+					}
 				}
-			}
-		} else {
-			if(_this->lex->tk == '(') {
-				TinyJS_Lex_match(_this->lex, '(');
-				TinyJS_Lex_match(_this->lex, ')');
+				return TinyJS_VarLink_new(obj);
 			}
 		}
-		return TinyJS_VarLink_new(obj);
 	} else {
 		SEH_throw_msg(TinyJS_Exception, "Syntax error.");
 	}
@@ -432,9 +475,11 @@ ST_TinyJS_VarLink* TinyJS_term(ST_TinyJS* _this, int* pExec) {
 	      (_this->lex->tk == '%')) {
 		int op = _this->lex->tk;
 		TinyJS_Lex_match(_this->lex, op);
-		ST_TinyJS_VarLink* b = TinyJS_unary(_this, pExec);
-		if(*pExec) {
-			a = TinyJS_VarLink_new(TinyJS_Var_mathsOp(a->var, b->var, op));
+		{
+			ST_TinyJS_VarLink* b = TinyJS_unary(_this, pExec);
+			if(*pExec) {
+				a = TinyJS_VarLink_new(TinyJS_Var_mathsOp(a->var, b->var, op));
+			}
 		}
 	}
 	return a;
@@ -475,17 +520,19 @@ ST_TinyJS_VarLink* TinyJS_shift(ST_TinyJS* _this, int* pExec) {
 	   (_this->lex->tk == TINYJS_LEX_O_RSHIFTUNSIGNED)) {
 		int op = _this->lex->tk;
 		TinyJS_Lex_match(_this->lex, op);
-		ST_TinyJS_VarLink* b = TinyJS_base(_this, pExec);
-		if(*pExec) {
-			int value = TinyJS_Var_getNumber(a->var);
-			int shift = TinyJS_Var_getNumber(b->var);
-			switch(op) {
-			default:DIE();	//バグ
-			case TINYJS_LEX_O_LSHIFT:         value =           value << shift; break;
-			case TINYJS_LEX_O_RSHIFT:         value =           value >> shift; break;
-			case TINYJS_LEX_O_RSHIFTUNSIGNED: value = (unsigned)value >> shift; break;
+		{
+			ST_TinyJS_VarLink* b = TinyJS_base(_this, pExec);
+			if(*pExec) {
+				int value = TinyJS_Var_getNumber(a->var);
+				int shift = TinyJS_Var_getNumber(b->var);
+				switch(op) {
+				default:DIE();	//バグ
+				case TINYJS_LEX_O_LSHIFT:         value =           value << shift; break;
+				case TINYJS_LEX_O_RSHIFT:         value =           value >> shift; break;
+				case TINYJS_LEX_O_RSHIFTUNSIGNED: value = (unsigned)value >> shift; break;
+				}
+				a = TinyJS_VarLink_new(TinyJS_Var_newNumber(value));
 			}
-			a = TinyJS_VarLink_new(TinyJS_Var_newNumber(value));
 		}
 	}
 	return a;
@@ -504,9 +551,11 @@ ST_TinyJS_VarLink* TinyJS_condition(ST_TinyJS* _this, int* pExec) {
 	      (_this->lex->tk == TINYJS_LEX_O_NTYPEEQUAL)) {	//"!=="
 		int op = _this->lex->tk;
 		TinyJS_Lex_match(_this->lex, op);
-		ST_TinyJS_VarLink* b = TinyJS_shift(_this, pExec);
-		if(*pExec) {
-			a = TinyJS_VarLink_new(TinyJS_Var_mathsOp(a->var, b->var, op));
+		{
+			ST_TinyJS_VarLink* b = TinyJS_shift(_this, pExec);
+			if(*pExec) {
+				a = TinyJS_VarLink_new(TinyJS_Var_mathsOp(a->var, b->var, op));
+			}
 		}
 	}
 	return a;
@@ -522,29 +571,33 @@ ST_TinyJS_VarLink* TinyJS_logic(ST_TinyJS* _this, int* pExec) {
 	      (_this->lex->tk == TINYJS_LEX_O_OROR)) {		//"||"
 		int op = _this->lex->tk;
 		TinyJS_Lex_match(_this->lex, op);
-		//If we have short-circuit ops, then if we know the outcome we don't bother to execute the other op.
-		//Even if not we need to tell TinyJS_Var_mathsOp it's an & or |.
-		int shortCircuit, isBoolean;
-		if(op == TINYJS_LEX_O_ANDAND) {		//"&&"
-			op = '&';
-			shortCircuit = !TinyJS_Var_getBoolean(a->var);
-			isBoolean    = 1;
-		} else if(op == TINYJS_LEX_O_OROR) {	//"||"
-			op = '|';
-			shortCircuit =  TinyJS_Var_getBoolean(a->var);
-			isBoolean    = 1;
-		} else {
-			shortCircuit = 0;
-			isBoolean    = 0;
-		}
-		ST_TinyJS_VarLink* b = TinyJS_condition(_this, shortCircuit ? &noexec : pExec);
-		if(*pExec) {
-			if(!shortCircuit) {
-				if(isBoolean) {
-					a = TinyJS_VarLink_new(TinyJS_Var_newNumber(TinyJS_Var_getBoolean(a->var)));
-					b = TinyJS_VarLink_new(TinyJS_Var_newNumber(TinyJS_Var_getBoolean(b->var)));
+		{
+			//If we have short-circuit ops, then if we know the outcome we don't bother to execute the other op.
+			//Even if not we need to tell TinyJS_Var_mathsOp it's an & or |.
+			int shortCircuit, isBoolean;
+			if(op == TINYJS_LEX_O_ANDAND) {		//"&&"
+				op = '&';
+				shortCircuit = !TinyJS_Var_getBoolean(a->var);
+				isBoolean    = 1;
+			} else if(op == TINYJS_LEX_O_OROR) {	//"||"
+				op = '|';
+				shortCircuit =  TinyJS_Var_getBoolean(a->var);
+				isBoolean    = 1;
+			} else {
+				shortCircuit = 0;
+				isBoolean    = 0;
+			}
+			{
+				ST_TinyJS_VarLink* b = TinyJS_condition(_this, shortCircuit ? &noexec : pExec);
+				if(*pExec) {
+					if(!shortCircuit) {
+						if(isBoolean) {
+							a = TinyJS_VarLink_new(TinyJS_Var_newNumber(TinyJS_Var_getBoolean(a->var)));
+							b = TinyJS_VarLink_new(TinyJS_Var_newNumber(TinyJS_Var_getBoolean(b->var)));
+						}
+						a = TinyJS_VarLink_new(TinyJS_Var_mathsOp(a->var, b->var, op));
+					}
 				}
-				a = TinyJS_VarLink_new(TinyJS_Var_mathsOp(a->var, b->var, op));
 			}
 		}
 	}
@@ -584,15 +637,19 @@ ST_TinyJS_VarLink* TinyJS_base(ST_TinyJS* _this, int* pExec) {
 				lhs = TinyJS_Var_addChild(_this->root, lhs->name, lhs->var);
 			}
 		}
-		int op = _this->lex->tk;
-		TinyJS_Lex_match(_this->lex, op);
-		ST_TinyJS_VarLink* rhs = TinyJS_base(_this, pExec);
-		if(*pExec) {
-			switch(op) {
-			default:DIE();	//バグ
-			case '=':                      TinyJS_VarLink_replaceWith(lhs,                              rhs->var      ); break;
-			case TINYJS_LEX_O_PLUSASSIGN:  TinyJS_VarLink_replaceWith(lhs, TinyJS_Var_mathsOp(lhs->var, rhs->var, '+')); break;
-			case TINYJS_LEX_O_MINUSASSIGN: TinyJS_VarLink_replaceWith(lhs, TinyJS_Var_mathsOp(lhs->var, rhs->var, '-')); break;
+		{
+			int op = _this->lex->tk;
+			TinyJS_Lex_match(_this->lex, op);
+			{
+				ST_TinyJS_VarLink* rhs = TinyJS_base(_this, pExec);
+				if(*pExec) {
+					switch(op) {
+					default:DIE();	//バグ
+					case '=':                      TinyJS_VarLink_replaceWith(lhs,                              rhs->var      ); break;
+					case TINYJS_LEX_O_PLUSASSIGN:  TinyJS_VarLink_replaceWith(lhs, TinyJS_Var_mathsOp(lhs->var, rhs->var, '+')); break;
+					case TINYJS_LEX_O_MINUSASSIGN: TinyJS_VarLink_replaceWith(lhs, TinyJS_Var_mathsOp(lhs->var, rhs->var, '-')); break;
+					}
+				}
 			}
 		}
 	}
@@ -646,9 +703,11 @@ void TinyJS_statement(ST_TinyJS* _this, int* pExec) {
 			//Sort out initialiser.
 			if(_this->lex->tk == '=') {
 				TinyJS_Lex_match(_this->lex, '=');
-				ST_TinyJS_VarLink* tmp = TinyJS_base(_this, pExec);
-				if(*pExec) {
-					TinyJS_VarLink_replaceWith(l, tmp->var);
+				{
+					ST_TinyJS_VarLink* tmp = TinyJS_base(_this, pExec);
+					if(*pExec) {
+						TinyJS_VarLink_replaceWith(l, tmp->var);
+					}
 				}
 			}
 			if(_this->lex->tk != ';') { TinyJS_Lex_match(_this->lex, ','); }
@@ -657,73 +716,101 @@ void TinyJS_statement(ST_TinyJS* _this, int* pExec) {
 	} else if(_this->lex->tk == TINYJS_LEX_R_IF) {
 		TinyJS_Lex_match(_this->lex, TINYJS_LEX_R_IF);
 		TinyJS_Lex_match(_this->lex, '(');
-		ST_TinyJS_VarLink* cond = TinyJS_base(_this, pExec);					//Condition.
-		TinyJS_Lex_match(_this->lex, ')');
-		TinyJS_statement(_this, TinyJS_Var_getBoolean(cond->var) ? pExec : &noexec);		//If body.
-		if(_this->lex->tk == TINYJS_LEX_R_ELSE) {
-			TinyJS_Lex_match(_this->lex, TINYJS_LEX_R_ELSE);
-			TinyJS_statement(_this, TinyJS_Var_getBoolean(cond->var) ? &noexec : pExec);	//Else body.
+		{
+			ST_TinyJS_VarLink* cond = TinyJS_base(_this, pExec);					//Condition.
+			TinyJS_Lex_match(_this->lex, ')');
+			TinyJS_statement(_this, TinyJS_Var_getBoolean(cond->var) ? pExec : &noexec);		//If body.
+			if(_this->lex->tk == TINYJS_LEX_R_ELSE) {
+				TinyJS_Lex_match(_this->lex, TINYJS_LEX_R_ELSE);
+				TinyJS_statement(_this, TinyJS_Var_getBoolean(cond->var) ? &noexec : pExec);	//Else body.
+			}
 		}
 	} else if(_this->lex->tk == TINYJS_LEX_R_WHILE) {
 		TinyJS_Lex_match(_this->lex, TINYJS_LEX_R_WHILE);
 		TinyJS_Lex_match(_this->lex, '(');
-		int whileCondStart = _this->lex->tokenStart;
-		TinyJS_base(_this, &noexec);		//Condition.
-		ST_TinyJS_Lex* whileCond = TinyJS_Lex_getSubLex(_this->lex, whileCondStart);
-		TinyJS_Lex_match(_this->lex, ')');
-		int whileBodyStart = _this->lex->tokenStart;
-		TinyJS_statement(_this, &noexec);	//Body.
-		ST_TinyJS_Lex* whileBody = TinyJS_Lex_getSubLex(_this->lex, whileBodyStart);
-		ST_TinyJS_Context* pSavedContext = TinyJS_saveContext(_this);
-		if(*pExec) {
-			for(;;) {
-				_this->lex = TinyJS_Lex_reset(whileCond);
-				ST_TinyJS_VarLink* cond = TinyJS_base(_this, pExec);	//Condition.
-				if(!TinyJS_Var_getBoolean(cond->var)) { break; }
-				_this->lex = TinyJS_Lex_reset(whileBody);		//Body.
-				TinyJS_statement(_this, pExec);
+		{
+			int whileCondStart = _this->lex->tokenStart;
+			TinyJS_base(_this, &noexec);		//Condition.
+			{
+				ST_TinyJS_Lex* whileCond = TinyJS_Lex_getSubLex(_this->lex, whileCondStart);
+				TinyJS_Lex_match(_this->lex, ')');
+				{
+					int whileBodyStart = _this->lex->tokenStart;
+					TinyJS_statement(_this, &noexec);	//Body.
+					{
+						ST_TinyJS_Lex* whileBody = TinyJS_Lex_getSubLex(_this->lex, whileBodyStart);
+						ST_TinyJS_Context* pSavedContext = TinyJS_saveContext(_this);
+						if(*pExec) {
+							for(;;) {
+								_this->lex = TinyJS_Lex_reset(whileCond);
+								{
+									ST_TinyJS_VarLink* cond = TinyJS_base(_this, pExec);	//Condition.
+									if(!TinyJS_Var_getBoolean(cond->var)) { break; }
+								}
+								_this->lex = TinyJS_Lex_reset(whileBody);		//Body.
+								TinyJS_statement(_this, pExec);
+							}
+						}
+						TinyJS_restoreContext(_this, pSavedContext);
+					}
+				}
 			}
 		}
-		TinyJS_restoreContext(_this, pSavedContext);
 	} else if(_this->lex->tk == TINYJS_LEX_R_FOR) {
 		TinyJS_Lex_match(_this->lex, TINYJS_LEX_R_FOR);
 		TinyJS_Lex_match(_this->lex, '(');
 		TinyJS_statement(_this, pExec);		//Initialisation.
-		int forCondStart = _this->lex->tokenStart;
-		TinyJS_base(_this, &noexec);		//Condition.
-		ST_TinyJS_Lex* forCond = TinyJS_Lex_getSubLex(_this->lex, forCondStart);
-		TinyJS_Lex_match(_this->lex, ';');
-		int forIterStart = _this->lex->tokenStart;
-		TinyJS_base(_this, &noexec);		//Iterator.
-		ST_TinyJS_Lex* forIter = TinyJS_Lex_getSubLex(_this->lex, forIterStart);
-		TinyJS_Lex_match(_this->lex, ')');
-		int forBodyStart = _this->lex->tokenStart;
-		TinyJS_statement(_this, &noexec);	//Body.
-		ST_TinyJS_Lex* forBody = TinyJS_Lex_getSubLex(_this->lex, forBodyStart);
-		ST_TinyJS_Context* pSavedContext = TinyJS_saveContext(_this);
-		if(*pExec) {
-			for(;;) {
-				_this->lex = TinyJS_Lex_reset(forCond);
-				ST_TinyJS_VarLink* cond = TinyJS_base(_this, pExec);	//Condition.
-				if(!TinyJS_Var_getBoolean(cond->var)) { break; }
-				_this->lex = TinyJS_Lex_reset(forBody);
-				TinyJS_statement(_this, pExec);				//Body.
-				_this->lex = TinyJS_Lex_reset(forIter);
-				TinyJS_base(_this, pExec);				//Iterator.
+		{
+			int forCondStart = _this->lex->tokenStart;
+			TinyJS_base(_this, &noexec);		//Condition.
+			{
+				ST_TinyJS_Lex* forCond = TinyJS_Lex_getSubLex(_this->lex, forCondStart);
+				TinyJS_Lex_match(_this->lex, ';');
+				{
+					int forIterStart = _this->lex->tokenStart;
+					TinyJS_base(_this, &noexec);		//Iterator.
+					{
+						ST_TinyJS_Lex* forIter = TinyJS_Lex_getSubLex(_this->lex, forIterStart);
+						TinyJS_Lex_match(_this->lex, ')');
+						{
+							int forBodyStart = _this->lex->tokenStart;
+							TinyJS_statement(_this, &noexec);	//Body.
+							{
+								ST_TinyJS_Lex* forBody = TinyJS_Lex_getSubLex(_this->lex, forBodyStart);
+								ST_TinyJS_Context* pSavedContext = TinyJS_saveContext(_this);
+								if(*pExec) {
+									for(;;) {
+										_this->lex = TinyJS_Lex_reset(forCond);
+										{
+											ST_TinyJS_VarLink* cond = TinyJS_base(_this, pExec);	//Condition.
+											if(!TinyJS_Var_getBoolean(cond->var)) { break; }
+										}
+										_this->lex = TinyJS_Lex_reset(forBody);
+										TinyJS_statement(_this, pExec);				//Body.
+										_this->lex = TinyJS_Lex_reset(forIter);
+										TinyJS_base(_this, pExec);				//Iterator.
+									}
+								}
+								TinyJS_restoreContext(_this, pSavedContext);
+							}
+						}
+					}
+				}
 			}
 		}
-		TinyJS_restoreContext(_this, pSavedContext);
 	} else if(_this->lex->tk == TINYJS_LEX_R_RETURN) {
 		TinyJS_Lex_match(_this->lex, TINYJS_LEX_R_RETURN);
-		ST_TinyJS_VarLink* result = NULL;
-		if(_this->lex->tk != ';') {
-			result = TinyJS_base(_this, pExec);
-		}
-		if(*pExec) {
-			if(result) {
-				TinyJS_Var_setReturnVar(scope, result->var);
+		{
+			ST_TinyJS_VarLink* result = NULL;
+			if(_this->lex->tk != ';') {
+				result = TinyJS_base(_this, pExec);
 			}
-			*pExec = 0;	//return文以降は実行せずにパースだけを行う。
+			if(*pExec) {
+				if(result) {
+					TinyJS_Var_setReturnVar(scope, result->var);
+				}
+				*pExec = 0;	//return文以降は実行せずにパースだけを行う。
+			}
 		}
 		TinyJS_Lex_match(_this->lex, ';');
 	} else if(_this->lex->tk == TINYJS_LEX_R_FUNCTION) {
@@ -742,19 +829,27 @@ void TinyJS_statement(ST_TinyJS* _this, int* pExec) {
 //「function 関数名(仮引数名,...){～}」,又は,「function(仮引数名,...){～}」
 ST_TinyJS_VarLink* TinyJS_parseFunctionDefinition(ST_TinyJS* _this) {
 	TinyJS_Lex_match(_this->lex, TINYJS_LEX_R_FUNCTION);
-	const char* funcName = "";
-	if(_this->lex->tk == TINYJS_LEX_ID) {	//We can have functions without names.
-		funcName = _this->lex->tkStr;
-		TinyJS_Lex_match(_this->lex, TINYJS_LEX_ID);
+	{
+		const char* funcName = "";
+		if(_this->lex->tk == TINYJS_LEX_ID) {	//We can have functions without names.
+			funcName = _this->lex->tkStr;
+			TinyJS_Lex_match(_this->lex, TINYJS_LEX_ID);
+		}
+		{
+			ST_TinyJS_Var* funcVar = TinyJS_Var_newFunction();
+			TinyJS_parseFunctionArguments(_this, funcVar);
+			{
+				int funcBegin = _this->lex->tokenStart;
+				TinyJS_block(_this, &noexec);
+				funcVar->strData = TinyJS_Lex_getSubString(_this->lex, funcBegin);
+			}
+			{
+				ST_TinyJS_VarLink* l = TinyJS_VarLink_new(funcVar);
+				l->name = funcName;
+				return l;
+			}
+		}
 	}
-	ST_TinyJS_Var* funcVar = TinyJS_Var_newFunction();
-	TinyJS_parseFunctionArguments(_this, funcVar);
-	int funcBegin = _this->lex->tokenStart;
-	TinyJS_block(_this, &noexec);
-	funcVar->strData = TinyJS_Lex_getSubString(_this->lex, funcBegin);
-	ST_TinyJS_VarLink* l = TinyJS_VarLink_new(funcVar);
-	l->name = funcName;
-	return l;
 }
 //-----------------------------------------------------------------------------
 //「(仮引数名,...)」
@@ -954,15 +1049,18 @@ const char* TinyJS_Lex_getLastPosition(ST_TinyJS_Lex* _this) {
 //Return a string representing the position in lines and columns of the character pos given.
 const char* TinyJS_Lex_getPosition(ST_TinyJS_Lex* _this, int pos) {
 	if(pos > _this->dataEnd) { pos = _this->dataEnd; }
-	int line = 1, col = 1;
-	for(int i = 0; i < pos; i++) {
-		col++;
-		if(_this->data[i] == '\n') {
-			line++;
-			col = 1;
+	{
+		int line = 1, col = 1;
+		int i;
+		for(i = 0; i < pos; i++) {
+			col++;
+			if(_this->data[i] == '\n') {
+				line++;
+				col = 1;
+			}
 		}
+		return strdup_printf("(line: %d, col: %d)", line, col);
 	}
-	return strdup_printf("(line: %d, col: %d)", line, col);
 }
 //-----------------------------------------------------------------------------
 void TinyJS_Lex_getNextCh(ST_TinyJS_Lex* _this) {
@@ -1025,199 +1123,201 @@ void TinyJS_Lex_getNextToken(ST_TinyJS_Lex* _this) {
 	//Tokens.
 //不要	_this->tk    = TINYJS_LEX_EOF;
 	_this->tkStr = "";
-	GString* buf = g_string_new(NULL);
-	//予約語,又は,ID
-	if(iscsymf(_this->currCh)) {
-		while(iscsym(_this->currCh)) {
-			g_string_append_c(buf, _this->currCh);
-			TinyJS_Lex_getNextCh(_this);
-		}
-		     if(!strcmp(buf->str, "break"))     { _this->tk = TINYJS_LEX_R_BREAK; }
-		else if(!strcmp(buf->str, "continue"))  { _this->tk = TINYJS_LEX_R_CONTINUE; }
-		else if(!strcmp(buf->str, "do"))        { _this->tk = TINYJS_LEX_R_DO; }
-		else if(!strcmp(buf->str, "else"))      { _this->tk = TINYJS_LEX_R_ELSE; }
-		else if(!strcmp(buf->str, "false"))     { _this->tk = TINYJS_LEX_R_FALSE; }
-		else if(!strcmp(buf->str, "for"))       { _this->tk = TINYJS_LEX_R_FOR; }
-		else if(!strcmp(buf->str, "function"))  { _this->tk = TINYJS_LEX_R_FUNCTION; }
-		else if(!strcmp(buf->str, "if"))        { _this->tk = TINYJS_LEX_R_IF; }
-		else if(!strcmp(buf->str, "new"))       { _this->tk = TINYJS_LEX_R_NEW; }
-		else if(!strcmp(buf->str, "null"))      { _this->tk = TINYJS_LEX_R_NULL; }
-		else if(!strcmp(buf->str, "return"))    { _this->tk = TINYJS_LEX_R_RETURN; }
-		else if(!strcmp(buf->str, "true"))      { _this->tk = TINYJS_LEX_R_TRUE; }
-		else if(!strcmp(buf->str, "undefined")) { _this->tk = TINYJS_LEX_R_UNDEFINED; }
-		else if(!strcmp(buf->str, "var"))       { _this->tk = TINYJS_LEX_R_VAR; }
-		else if(!strcmp(buf->str, "while"))     { _this->tk = TINYJS_LEX_R_WHILE; }
-		else                                    { _this->tk = TINYJS_LEX_ID; }
-	//数値リテラル
-	} else if(isdigit(_this->currCh)) {
-		int isHex = 0;
-		if(_this->currCh == '0') {
-			g_string_append_c(buf, _this->currCh);
-			TinyJS_Lex_getNextCh(_this);
-			if((_this->currCh == 'x') || (_this->currCh == 'X')) {
-				isHex = 1;
+	{
+		GString* buf = g_string_new(NULL);
+		//予約語,又は,ID
+		if(iscsymf(_this->currCh)) {
+			while(iscsym(_this->currCh)) {
 				g_string_append_c(buf, _this->currCh);
 				TinyJS_Lex_getNextCh(_this);
 			}
-		}
-		_this->tk = TINYJS_LEX_L_NUM;
-		while(isdigit(_this->currCh) || (isHex && isxdigit(_this->currCh))) {
-			g_string_append_c(buf, _this->currCh);
-			TinyJS_Lex_getNextCh(_this);
-		}
-		if(!isHex && (_this->currCh == '.')) {
-			g_string_append_c(buf, _this->currCh);
-			TinyJS_Lex_getNextCh(_this);
-			while(isdigit(_this->currCh)) {
+			     if(!strcmp(buf->str, "break"))     { _this->tk = TINYJS_LEX_R_BREAK; }
+			else if(!strcmp(buf->str, "continue"))  { _this->tk = TINYJS_LEX_R_CONTINUE; }
+			else if(!strcmp(buf->str, "do"))        { _this->tk = TINYJS_LEX_R_DO; }
+			else if(!strcmp(buf->str, "else"))      { _this->tk = TINYJS_LEX_R_ELSE; }
+			else if(!strcmp(buf->str, "false"))     { _this->tk = TINYJS_LEX_R_FALSE; }
+			else if(!strcmp(buf->str, "for"))       { _this->tk = TINYJS_LEX_R_FOR; }
+			else if(!strcmp(buf->str, "function"))  { _this->tk = TINYJS_LEX_R_FUNCTION; }
+			else if(!strcmp(buf->str, "if"))        { _this->tk = TINYJS_LEX_R_IF; }
+			else if(!strcmp(buf->str, "new"))       { _this->tk = TINYJS_LEX_R_NEW; }
+			else if(!strcmp(buf->str, "null"))      { _this->tk = TINYJS_LEX_R_NULL; }
+			else if(!strcmp(buf->str, "return"))    { _this->tk = TINYJS_LEX_R_RETURN; }
+			else if(!strcmp(buf->str, "true"))      { _this->tk = TINYJS_LEX_R_TRUE; }
+			else if(!strcmp(buf->str, "undefined")) { _this->tk = TINYJS_LEX_R_UNDEFINED; }
+			else if(!strcmp(buf->str, "var"))       { _this->tk = TINYJS_LEX_R_VAR; }
+			else if(!strcmp(buf->str, "while"))     { _this->tk = TINYJS_LEX_R_WHILE; }
+			else                                    { _this->tk = TINYJS_LEX_ID; }
+		//数値リテラル
+		} else if(isdigit(_this->currCh)) {
+			int isHex = 0;
+			if(_this->currCh == '0') {
+				g_string_append_c(buf, _this->currCh);
+				TinyJS_Lex_getNextCh(_this);
+				if((_this->currCh == 'x') || (_this->currCh == 'X')) {
+					isHex = 1;
+					g_string_append_c(buf, _this->currCh);
+					TinyJS_Lex_getNextCh(_this);
+				}
+			}
+			_this->tk = TINYJS_LEX_L_NUM;
+			while(isdigit(_this->currCh) || (isHex && isxdigit(_this->currCh))) {
 				g_string_append_c(buf, _this->currCh);
 				TinyJS_Lex_getNextCh(_this);
 			}
-		}
-		//Do fancy e-style floating point.
-		if(!isHex && ((_this->currCh == 'e') || (_this->currCh == 'E'))) {
-			g_string_append_c(buf, _this->currCh);
+			if(!isHex && (_this->currCh == '.')) {
+				g_string_append_c(buf, _this->currCh);
+				TinyJS_Lex_getNextCh(_this);
+				while(isdigit(_this->currCh)) {
+					g_string_append_c(buf, _this->currCh);
+					TinyJS_Lex_getNextCh(_this);
+				}
+			}
+			//Do fancy e-style floating point.
+			if(!isHex && ((_this->currCh == 'e') || (_this->currCh == 'E'))) {
+				g_string_append_c(buf, _this->currCh);
+				TinyJS_Lex_getNextCh(_this);
+				if(_this->currCh == '-') {
+					g_string_append_c(buf, _this->currCh);
+					TinyJS_Lex_getNextCh(_this);
+				}
+				while(isdigit(_this->currCh)) {
+					g_string_append_c(buf, _this->currCh);
+					TinyJS_Lex_getNextCh(_this);
+				}
+			}
+		//文字列リテラル
+		} else if((_this->currCh == '"') || (_this->currCh == '\'')) {
+			const int quotCh = _this->currCh;
+			_this->tk = TINYJS_LEX_L_STR;
 			TinyJS_Lex_getNextCh(_this);
-			if(_this->currCh == '-') {
-				g_string_append_c(buf, _this->currCh);
-				TinyJS_Lex_getNextCh(_this);
-			}
-			while(isdigit(_this->currCh)) {
-				g_string_append_c(buf, _this->currCh);
-				TinyJS_Lex_getNextCh(_this);
-			}
-		}
-	//文字列リテラル
-	} else if((_this->currCh == '"') || (_this->currCh == '\'')) {
-		const int quotCh = _this->currCh;
-		_this->tk = TINYJS_LEX_L_STR;
-		TinyJS_Lex_getNextCh(_this);
-		while(_this->currCh && (_this->currCh != quotCh)) {
-			if(_this->currCh == '\\') {
-				TinyJS_Lex_getNextCh(_this);
-				switch(_this->currCh) {
-				case 't':  g_string_append_c(buf, '\t'); break;	//┐
-				case 'n':  g_string_append_c(buf, '\n'); break;	//├頻繁に使う制御文字のエスケープシーケンスだけ対応した。頻繁に使わない制御文字はその他の印字不可文字と共通で8進数形式,又は,16進数形式での入力を前提とする。もし不足ならば追加しろ。
-				case 'r':  g_string_append_c(buf, '\r'); break;	//┘
-				case '\\': g_string_append_c(buf, '\\'); break;
-				default:
-					//Hex digits.
-					if((_this->currCh == 'x') || (_this->currCh == 'X')) {
-						GString* tmp = g_string_new(NULL);
-						for(;;) {			//C言語の文字列リテラルの仕様では、"\x????～"には桁数制限が無い。JavaScriptでも同じなのかわからない。(※TODO:要確認)
-							TinyJS_Lex_getNextCh(_this);
-							if(!isxdigit(_this->currCh)) { break; }
-							g_string_append_c(tmp, _this->currCh);
+			while(_this->currCh && (_this->currCh != quotCh)) {
+				if(_this->currCh == '\\') {
+					TinyJS_Lex_getNextCh(_this);
+					switch(_this->currCh) {
+					case 't':  g_string_append_c(buf, '\t'); break;	//┐
+					case 'n':  g_string_append_c(buf, '\n'); break;	//├頻繁に使う制御文字のエスケープシーケンスだけ対応した。頻繁に使わない制御文字はその他の印字不可文字と共通で8進数形式,又は,16進数形式での入力を前提とする。もし不足ならば追加しろ。
+					case 'r':  g_string_append_c(buf, '\r'); break;	//┘
+					case '\\': g_string_append_c(buf, '\\'); break;
+					default:
+						//Hex digits.
+						if((_this->currCh == 'x') || (_this->currCh == 'X')) {
+							GString* tmp = g_string_new(NULL);
+							for(;;) {			//C言語の文字列リテラルの仕様では、"\x????～"には桁数制限が無い。JavaScriptでも同じなのかわからない。(※TODO:要確認)
+								TinyJS_Lex_getNextCh(_this);
+								if(!isxdigit(_this->currCh)) { break; }
+								g_string_append_c(tmp, _this->currCh);
+							}
+							g_string_append_c(buf, (char)strtoul(tmp->str, NULL, 16));
+						//Octal digits.
+						} else if((_this->currCh >= '0') && (_this->currCh <= '7')) {
+							GString* tmp = g_string_new(NULL);
+							while(tmp->len < 3) {		//C言語の文字列リテラルの仕様では、"\???"の桁数は1桁～3桁である。JavaScriptでも同じなのかわからない。(※TODO:要確認)
+								if(!isxdigit(_this->currCh)) { break; }
+								g_string_append_c(tmp, _this->currCh);
+								TinyJS_Lex_getNextCh(_this);
+							}
+							g_string_append_c(buf, (char)strtoul(tmp->str, NULL, 8));
+						} else {
+							g_string_append_c(buf, _this->currCh);
 						}
-						g_string_append_c(buf, (char)strtoul(tmp->str, NULL, 16));
-					//Octal digits.
-					} else if((_this->currCh >= '0') && (_this->currCh <= '7')) {
-						GString* tmp = g_string_new(NULL);
-						while(tmp->len < 3) {		//C言語の文字列リテラルの仕様では、"\???"の桁数は1桁～3桁である。JavaScriptでも同じなのかわからない。(※TODO:要確認)
-							if(!isxdigit(_this->currCh)) { break; }
-							g_string_append_c(tmp, _this->currCh);
-							TinyJS_Lex_getNextCh(_this);
-						}
-						g_string_append_c(buf, (char)strtoul(tmp->str, NULL, 8));
-					} else {
-						g_string_append_c(buf, _this->currCh);
+						break;
 					}
-					break;
+				} else {
+					g_string_append_c(buf, _this->currCh);
 				}
-			} else {
-				g_string_append_c(buf, _this->currCh);
+				TinyJS_Lex_getNextCh(_this);
 			}
 			TinyJS_Lex_getNextCh(_this);
-		}
-		TinyJS_Lex_getNextCh(_this);
-	//演算子,又は,EOF
-	} else {
-		_this->tk = _this->currCh;
-		if(_this->tk) {
-			TinyJS_Lex_getNextCh(_this);
-			if((_this->tk == '=') && (_this->currCh == '=')) {
-				_this->tk = TINYJS_LEX_O_EQUAL;				//"=="
-				TinyJS_Lex_getNextCh(_this);
-				if(_this->currCh == '=') {
-					_this->tk = TINYJS_LEX_O_TYPEEQUAL;		//"==="
-					TinyJS_Lex_getNextCh(_this);
-				}
-			} else if((_this->tk == '!') && (_this->currCh == '=')) {
-				_this->tk = TINYJS_LEX_O_NEQUAL;			//"!="
-				TinyJS_Lex_getNextCh(_this);
-				if(_this->currCh == '=') {
-					_this->tk = TINYJS_LEX_O_NTYPEEQUAL;		//"!=="
-					TinyJS_Lex_getNextCh(_this);
-				}
-			} else if((_this->tk == '<') && (_this->currCh == '=')) {
-				_this->tk = TINYJS_LEX_O_LEQUAL;			//"<="
-				TinyJS_Lex_getNextCh(_this);
-			} else if((_this->tk == '<') && (_this->currCh == '<')) {
-				_this->tk = TINYJS_LEX_O_LSHIFT;			//"<<"
-				TinyJS_Lex_getNextCh(_this);
-				if(_this->currCh == '=') {
-					_this->tk = TINYJS_LEX_O_LSHIFTASSIGN;		//"<<="
-					TinyJS_Lex_getNextCh(_this);
-				}
-			} else if((_this->tk == '>') && (_this->currCh == '=')) {
-				_this->tk = TINYJS_LEX_O_GEQUAL;			//">="
-				TinyJS_Lex_getNextCh(_this);
-			} else if((_this->tk == '>') && (_this->currCh == '>')) {
-				_this->tk = TINYJS_LEX_O_RSHIFT;			//">>"
-				TinyJS_Lex_getNextCh(_this);
-				if(_this->currCh == '=') {
-					_this->tk = TINYJS_LEX_O_RSHIFTASSIGN;		//">>="
-					TinyJS_Lex_getNextCh(_this);
-				} else if(_this->currCh == '>') {
-					_this->tk = TINYJS_LEX_O_RSHIFTUNSIGNED;	//">>>"
-					TinyJS_Lex_getNextCh(_this);
-				}
-			} else if((_this->tk == '+') && (_this->currCh == '=')) {
-				_this->tk = TINYJS_LEX_O_PLUSASSIGN;			//"+="
-				TinyJS_Lex_getNextCh(_this);
-			} else if((_this->tk == '-') && (_this->currCh == '=')) {
-				_this->tk = TINYJS_LEX_O_MINUSASSIGN;			//"-="
-				TinyJS_Lex_getNextCh(_this);
-			} else if((_this->tk == '+') && (_this->currCh == '+')) {
-				_this->tk = TINYJS_LEX_O_PLUSPLUS;			//"++"
-				TinyJS_Lex_getNextCh(_this);
-			} else if((_this->tk == '-') && (_this->currCh == '-')) {
-				_this->tk = TINYJS_LEX_O_MINUSMINUS;			//"--"
-				TinyJS_Lex_getNextCh(_this);
-			} else if((_this->tk == '&') && (_this->currCh == '=')) {
-				_this->tk = TINYJS_LEX_O_ANDASSIGN;			//"&="
-				TinyJS_Lex_getNextCh(_this);
-			} else if((_this->tk == '&') && (_this->currCh == '&')) {
-				_this->tk = TINYJS_LEX_O_ANDAND;			//"&&"
-				TinyJS_Lex_getNextCh(_this);
-			} else if((_this->tk == '|') && (_this->currCh == '=')) {
-				_this->tk = TINYJS_LEX_O_OREQUAL;			//"|="
-				TinyJS_Lex_getNextCh(_this);
-			} else if((_this->tk == '|') && (_this->currCh == '|')) {
-				_this->tk = TINYJS_LEX_O_OROR;				//"||"
-				TinyJS_Lex_getNextCh(_this);
-			} else if((_this->tk == '^') && (_this->currCh == '=')) {
-				_this->tk = TINYJS_LEX_O_XORASSIGN;			//"^="
-				TinyJS_Lex_getNextCh(_this);
-			} else {
-				/** no job **/						//その他の一文字演算子,又は,不正な文字
-			}
+		//演算子,又は,EOF
 		} else {
-			/** no job **/							//EOF
+			_this->tk = _this->currCh;
+			if(_this->tk) {
+				TinyJS_Lex_getNextCh(_this);
+				if((_this->tk == '=') && (_this->currCh == '=')) {
+					_this->tk = TINYJS_LEX_O_EQUAL;				//"=="
+					TinyJS_Lex_getNextCh(_this);
+					if(_this->currCh == '=') {
+						_this->tk = TINYJS_LEX_O_TYPEEQUAL;		//"==="
+						TinyJS_Lex_getNextCh(_this);
+					}
+				} else if((_this->tk == '!') && (_this->currCh == '=')) {
+					_this->tk = TINYJS_LEX_O_NEQUAL;			//"!="
+					TinyJS_Lex_getNextCh(_this);
+					if(_this->currCh == '=') {
+						_this->tk = TINYJS_LEX_O_NTYPEEQUAL;		//"!=="
+						TinyJS_Lex_getNextCh(_this);
+					}
+				} else if((_this->tk == '<') && (_this->currCh == '=')) {
+					_this->tk = TINYJS_LEX_O_LEQUAL;			//"<="
+					TinyJS_Lex_getNextCh(_this);
+				} else if((_this->tk == '<') && (_this->currCh == '<')) {
+					_this->tk = TINYJS_LEX_O_LSHIFT;			//"<<"
+					TinyJS_Lex_getNextCh(_this);
+					if(_this->currCh == '=') {
+						_this->tk = TINYJS_LEX_O_LSHIFTASSIGN;		//"<<="
+						TinyJS_Lex_getNextCh(_this);
+					}
+				} else if((_this->tk == '>') && (_this->currCh == '=')) {
+					_this->tk = TINYJS_LEX_O_GEQUAL;			//">="
+					TinyJS_Lex_getNextCh(_this);
+				} else if((_this->tk == '>') && (_this->currCh == '>')) {
+					_this->tk = TINYJS_LEX_O_RSHIFT;			//">>"
+					TinyJS_Lex_getNextCh(_this);
+					if(_this->currCh == '=') {
+						_this->tk = TINYJS_LEX_O_RSHIFTASSIGN;		//">>="
+						TinyJS_Lex_getNextCh(_this);
+					} else if(_this->currCh == '>') {
+						_this->tk = TINYJS_LEX_O_RSHIFTUNSIGNED;	//">>>"
+						TinyJS_Lex_getNextCh(_this);
+					}
+				} else if((_this->tk == '+') && (_this->currCh == '=')) {
+					_this->tk = TINYJS_LEX_O_PLUSASSIGN;			//"+="
+					TinyJS_Lex_getNextCh(_this);
+				} else if((_this->tk == '-') && (_this->currCh == '=')) {
+					_this->tk = TINYJS_LEX_O_MINUSASSIGN;			//"-="
+					TinyJS_Lex_getNextCh(_this);
+				} else if((_this->tk == '+') && (_this->currCh == '+')) {
+					_this->tk = TINYJS_LEX_O_PLUSPLUS;			//"++"
+					TinyJS_Lex_getNextCh(_this);
+				} else if((_this->tk == '-') && (_this->currCh == '-')) {
+					_this->tk = TINYJS_LEX_O_MINUSMINUS;			//"--"
+					TinyJS_Lex_getNextCh(_this);
+				} else if((_this->tk == '&') && (_this->currCh == '=')) {
+					_this->tk = TINYJS_LEX_O_ANDASSIGN;			//"&="
+					TinyJS_Lex_getNextCh(_this);
+				} else if((_this->tk == '&') && (_this->currCh == '&')) {
+					_this->tk = TINYJS_LEX_O_ANDAND;			//"&&"
+					TinyJS_Lex_getNextCh(_this);
+				} else if((_this->tk == '|') && (_this->currCh == '=')) {
+					_this->tk = TINYJS_LEX_O_OREQUAL;			//"|="
+					TinyJS_Lex_getNextCh(_this);
+				} else if((_this->tk == '|') && (_this->currCh == '|')) {
+					_this->tk = TINYJS_LEX_O_OROR;				//"||"
+					TinyJS_Lex_getNextCh(_this);
+				} else if((_this->tk == '^') && (_this->currCh == '=')) {
+					_this->tk = TINYJS_LEX_O_XORASSIGN;			//"^="
+					TinyJS_Lex_getNextCh(_this);
+				} else {
+					/** no job **/						//その他の一文字演算子,又は,不正な文字
+				}
+			} else {
+				/** no job **/							//EOF
+			}
 		}
+		//Record ending of last token.
+		_this->tokenLastEnd = _this->tokenEnd;
+		//Record ending of this token.
+		_this->tokenEnd = _this->dataPos - 2;
+		//
+		//	～■■■□□□～
+		//	　…┬┘↑↑↑
+		//	　　│　││└         dataPos
+		//	　　│　│└─ nextCh: dataPos - 1
+		//	　　│　└── currCh: dataPos - 2 = tokenEnd
+		//	　　└──── tkStr
+		//
+		_this->tkStr = buf->str;	//忘れないで!!
 	}
-	//Record ending of last token.
-	_this->tokenLastEnd = _this->tokenEnd;
-	//Record ending of this token.
-	_this->tokenEnd = _this->dataPos - 2;
-	//
-	//	～■■■□□□～
-	//	　…┬┘↑↑↑
-	//	　　│　││└         dataPos
-	//	　　│　│└─ nextCh: dataPos - 1
-	//	　　│　└── currCh: dataPos - 2 = tokenEnd
-	//	　　└──── tkStr
-	//
-	_this->tkStr = buf->str;	//忘れないで!!
 }
 //*****************************************************************************
 //	ST_TinyJS_Var
@@ -1392,11 +1492,13 @@ ST_TinyJS_VarLink* TinyJS_Var_addChild(ST_TinyJS_Var* _this, const char* name, S
 	if(TinyJS_Var_findChild(_this, name)) {
 		SEH_throw_msg(TinyJS_Exception, strdup_printf("'%s' already exists.", name));
 	}
-	ST_TinyJS_VarLink* l = TinyJS_VarLink_new(v);
-	l->name  = name;
-	l->owned = 1;
-	_this->firstChild = g_slist_append(_this->firstChild, l);
-	return l;
+	{
+		ST_TinyJS_VarLink* l = TinyJS_VarLink_new(v);
+		l->name  = name;
+		l->owned = 1;
+		_this->firstChild = g_slist_append(_this->firstChild, l);
+		return l;
+	}
 }
 //-----------------------------------------------------------------------------
 //Remove a specific link (this is faster than finding via a child).
@@ -1437,18 +1539,20 @@ void TinyJS_Var_setArrayIndex(ST_TinyJS_Var* _this, int i, ST_TinyJS_Var* v) {
 //If this is an array, return the number of items in it (else 0).
 int TinyJS_Var_getArrayLength(ST_TinyJS_Var* _this) {
 	if(!TinyJS_Var_isArray(_this)) { return 0; }
-	int ubound = -1;
-	GSList/*<ST_TinyJS_VarLink*>*/* list = _this->firstChild;
-	while(list) {
-		ST_TinyJS_VarLink* l = (ST_TinyJS_VarLink*)list->data;
-		char* endptr;
-		int i = strtoul(l->name, &endptr, 10);
-		if(*endptr == '\0') {
-			if(i > ubound) { ubound = i; }
+	{
+		int ubound = -1;
+		GSList/*<ST_TinyJS_VarLink*>*/* list = _this->firstChild;
+		while(list) {
+			ST_TinyJS_VarLink* l = (ST_TinyJS_VarLink*)list->data;
+			char* endptr;
+			int i = strtoul(l->name, &endptr, 10);
+			if(*endptr == '\0') {
+				if(i > ubound) { ubound = i; }
+			}
+			list = list->next;
 		}
-		list = list->next;
+		return ubound + 1;
 	}
-	return ubound + 1;
 }
 //-----------------------------------------------------------------------------
 int TinyJS_Var_getBoolean(ST_TinyJS_Var* _this) {
@@ -1582,19 +1686,21 @@ ST_TinyJS_Var* TinyJS_Var_deepCopy(ST_TinyJS_Var* _this) {
 	v->type    = _this->type;
 	v->numData = _this->numData;
 	v->strData = _this->strData;
-	//Copy children.
-	GSList/*<ST_TinyJS_VarLink*>*/* list = _this->firstChild;
-	while(list) {
-		ST_TinyJS_VarLink* l = (ST_TinyJS_VarLink*)list->data;
-		ST_TinyJS_Var* tmp;
-		//Don't copy the 'prototype' object...
-		if(!strcmp(l->name, "prototype")) {	//"prototype"ならば…
-			tmp = l->var;
-		} else {				//"prototype"以外ならば…
-			tmp = TinyJS_Var_deepCopy(l->var);
+	{
+		//Copy children.
+		GSList/*<ST_TinyJS_VarLink*>*/* list = _this->firstChild;
+		while(list) {
+			ST_TinyJS_VarLink* l = (ST_TinyJS_VarLink*)list->data;
+			ST_TinyJS_Var* tmp;
+			//Don't copy the 'prototype' object...
+			if(!strcmp(l->name, "prototype")) {	//"prototype"ならば…
+				tmp = l->var;
+			} else {				//"prototype"以外ならば…
+				tmp = TinyJS_Var_deepCopy(l->var);
+			}
+			TinyJS_Var_addChild(v, l->name, tmp);
+			list = list->next;
 		}
-		TinyJS_Var_addChild(v, l->name, tmp);
-		list = list->next;
 	}
 	return v;
 }
@@ -1606,12 +1712,14 @@ void TinyJS_Var_trace(ST_TinyJS_Var* _this, const char* indent, const char* name
 		name,
 		TinyJS_Var_getString(_this),
 		TinyJS_Var_getTypeAsString(_this));
-	const char* indentStr = strconcat(indent, " ", NULL);
-	GSList/*<ST_TinyJS_VarLink*>*/* list = _this->firstChild;
-	while(list) {
-		ST_TinyJS_VarLink* l = (ST_TinyJS_VarLink*)list->data;
-		TinyJS_Var_trace(l->var, indentStr, l->name);
-		list = list->next;
+	{
+		const char* indentStr = strconcat(indent, " ", NULL);
+		GSList/*<ST_TinyJS_VarLink*>*/* list = _this->firstChild;
+		while(list) {
+			ST_TinyJS_VarLink* l = (ST_TinyJS_VarLink*)list->data;
+			TinyJS_Var_trace(l->var, indentStr, l->name);
+			list = list->next;
+		}
 	}
 }
 //-----------------------------------------------------------------------------
@@ -1630,39 +1738,48 @@ const char* TinyJS_Var_getTypeAsString(ST_TinyJS_Var* _this) {
 const char* TinyJS_Var_getJSON(ST_TinyJS_Var* _this, const char* linePrefix) {
 	GString* indentedLinePrefix = g_string_new(linePrefix);
 	g_string_append(indentedLinePrefix, "  ");
-	GString* destination = g_string_new(NULL);
-	if(TinyJS_Var_isObject(_this)) {
-		//Children - handle with bracketed list.
-		g_string_append(destination, "{\n");
-		GSList/*<ST_TinyJS_VarLink*>*/* list = _this->firstChild;
-		while(list) {
-			ST_TinyJS_VarLink* l = (ST_TinyJS_VarLink*)list->data;
-			g_string_append(destination, indentedLinePrefix->str);
-			g_string_append(destination, getJSString(l->name));
-			g_string_append(destination, ": ");
-			g_string_append(destination, TinyJS_Var_getJSON(l->var, indentedLinePrefix->str));
-			if(list->next) { g_string_append(destination, ","); }
-			g_string_append(destination, "\n");
-			list = list->next;
+	{
+		GString* destination = g_string_new(NULL);
+		if(TinyJS_Var_isObject(_this)) {
+			//Children - handle with bracketed list.
+			g_string_append(destination, "{\n");
+			{
+				GSList/*<ST_TinyJS_VarLink*>*/* list = _this->firstChild;
+				while(list) {
+					ST_TinyJS_VarLink* l = (ST_TinyJS_VarLink*)list->data;
+					g_string_append(destination, indentedLinePrefix->str);
+					g_string_append(destination, getJSString(l->name));
+					g_string_append(destination, ": ");
+					g_string_append(destination, TinyJS_Var_getJSON(l->var, indentedLinePrefix->str));
+					if(list->next) { g_string_append(destination, ","); }
+					g_string_append(destination, "\n");
+					list = list->next;
+				}
+			}
+			g_string_append(destination, linePrefix);
+			g_string_append(destination, "}");
+		} else if(TinyJS_Var_isArray(_this)) {
+			g_string_append(destination, "[\n");
+			{
+				int len = TinyJS_Var_getArrayLength(_this);
+				if(len > 10000) { len = 10000; }	//We don't want to get stuck here!
+				{
+					int i;
+					for(i = 0; i < len; i++) {
+						g_string_append(destination, TinyJS_Var_getJSON(TinyJS_Var_getArrayIndex(_this, i), indentedLinePrefix->str));
+						if(i < len - 1) { g_string_append(destination, ","); }
+						g_string_append(destination, "\n");
+					}
+				}
+			}
+			g_string_append(destination, linePrefix);
+			g_string_append(destination, "]");
+		} else {
+			//No children or a function... just write value directly.
+			g_string_append(destination, TinyJS_Var_getParsableString(_this));
 		}
-		g_string_append(destination, linePrefix);
-		g_string_append(destination, "}");
-	} else if(TinyJS_Var_isArray(_this)) {
-		g_string_append(destination, "[\n");
-		int len = TinyJS_Var_getArrayLength(_this);
-		if(len > 10000) { len = 10000; }	//We don't want to get stuck here!
-		for(int i = 0; i < len; i++) {
-			g_string_append(destination, TinyJS_Var_getJSON(TinyJS_Var_getArrayIndex(_this, i), indentedLinePrefix->str));
-			if(i < len - 1) { g_string_append(destination, ","); }
-			g_string_append(destination, "\n");
-		}
-		g_string_append(destination, linePrefix);
-		g_string_append(destination, "]");
-	} else {
-		//No children or a function... just write value directly.
-		g_string_append(destination, TinyJS_Var_getParsableString(_this));
+		return destination->str;
 	}
-	return destination->str;
 }
 //-----------------------------------------------------------------------------
 void TinyJS_Var_init(ST_TinyJS_Var* _this, int varType) {
