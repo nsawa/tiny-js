@@ -32,82 +32,82 @@ extern "C" {
 //*****************************************************************************
 //	
 //*****************************************************************************
-#define TinyJS_Exception		MAKEFOURCC('T','i','J','S')
+#define TinyJS_Exception			MAKEFOURCC('T','i','J','S')
 //-----------------------------------------------------------------------------
 //ST_TinyJS_Lex.tk
-#define TINYJS_LEX_EOF			0
+#define TINYJS_LEX_EOF				0
 //ID
-#define TINYJS_LEX_ID			(UCHAR_MAX+1)
+#define TINYJS_LEX_ID				(UCHAR_MAX+1)
 //リテラル
-#define TINYJS_LEX_L_NUM		(UCHAR_MAX+2)
-#define TINYJS_LEX_L_STR		(UCHAR_MAX+3)
+#define TINYJS_LEX_L_NUM			(UCHAR_MAX+2)
+#define TINYJS_LEX_L_STR			(UCHAR_MAX+3)
 //演算子
-#define TINYJS_LEX_O_ANDAND		(UCHAR_MAX+5)		//"&&"
-#define TINYJS_LEX_O_ANDASSIGN		(UCHAR_MAX+6)		//"&="		//※字句解析で検出されているが、構文解析で処理されていない。
-#define TINYJS_LEX_O_EQUAL		(UCHAR_MAX+7)		//"=="
-#define TINYJS_LEX_O_GEQUAL		(UCHAR_MAX+8)		//">="
-#define TINYJS_LEX_O_LEQUAL		(UCHAR_MAX+9)		//"<="
-#define TINYJS_LEX_O_LSHIFT		(UCHAR_MAX+10)		//"<<"
-#define TINYJS_LEX_O_LSHIFTASSIGN	(UCHAR_MAX+11)		//"<<="		//※字句解析で検出されているが、構文解析で処理されていない。
-#define TINYJS_LEX_O_MINUSASSIGN	(UCHAR_MAX+12)		//"-="
-#define TINYJS_LEX_O_MINUSMINUS		(UCHAR_MAX+13)		//"--"
-#define TINYJS_LEX_O_NEQUAL		(UCHAR_MAX+14)		//"!="
-#define TINYJS_LEX_O_NTYPEEQUAL		(UCHAR_MAX+15)		//"!=="
-#define TINYJS_LEX_O_OREQUAL		(UCHAR_MAX+16)		//"|="		//※字句解析で検出されているが、構文解析で処理されていない。
-#define TINYJS_LEX_O_OROR		(UCHAR_MAX+17)		//"||"
-#define TINYJS_LEX_O_PLUSASSIGN		(UCHAR_MAX+18)		//"+="
-#define TINYJS_LEX_O_PLUSPLUS		(UCHAR_MAX+19)		//"++"
-#define TINYJS_LEX_O_RSHIFT		(UCHAR_MAX+20)		//">>"
-#define TINYJS_LEX_O_RSHIFTASSIGN	(UCHAR_MAX+21)		//">>="		//※字句解析で検出されているが、構文解析で処理されていない。
-#define TINYJS_LEX_O_RSHIFTUNSIGNED	(UCHAR_MAX+22)		//">>"
-#define TINYJS_LEX_O_TYPEEQUAL		(UCHAR_MAX+23)		//"==="
-#define TINYJS_LEX_O_XORASSIGN		(UCHAR_MAX+24)		//"^="		//※字句解析で検出されているが、構文解析で処理されていない。
+#define TINYJS_LEX_O_ANDAND			(UCHAR_MAX+5)			//"&&"
+#define TINYJS_LEX_O_ANDASSIGN			(UCHAR_MAX+6)			//"&="		//※字句解析で検出されているが、構文解析で処理されていない。
+#define TINYJS_LEX_O_EQUAL			(UCHAR_MAX+7)			//"=="
+#define TINYJS_LEX_O_GEQUAL			(UCHAR_MAX+8)			//">="
+#define TINYJS_LEX_O_LEQUAL			(UCHAR_MAX+9)			//"<="
+#define TINYJS_LEX_O_LSHIFT			(UCHAR_MAX+10)			//"<<"
+#define TINYJS_LEX_O_LSHIFTASSIGN		(UCHAR_MAX+11)			//"<<="		//※字句解析で検出されているが、構文解析で処理されていない。
+#define TINYJS_LEX_O_MINUSASSIGN		(UCHAR_MAX+12)			//"-="
+#define TINYJS_LEX_O_MINUSMINUS			(UCHAR_MAX+13)			//"--"
+#define TINYJS_LEX_O_NEQUAL			(UCHAR_MAX+14)			//"!="
+#define TINYJS_LEX_O_NTYPEEQUAL			(UCHAR_MAX+15)			//"!=="
+#define TINYJS_LEX_O_OREQUAL			(UCHAR_MAX+16)			//"|="		//※字句解析で検出されているが、構文解析で処理されていない。
+#define TINYJS_LEX_O_OROR			(UCHAR_MAX+17)			//"||"
+#define TINYJS_LEX_O_PLUSASSIGN			(UCHAR_MAX+18)			//"+="
+#define TINYJS_LEX_O_PLUSPLUS			(UCHAR_MAX+19)			//"++"
+#define TINYJS_LEX_O_RSHIFT			(UCHAR_MAX+20)			//">>"
+#define TINYJS_LEX_O_RSHIFTASSIGN		(UCHAR_MAX+21)			//">>="		//※字句解析で検出されているが、構文解析で処理されていない。
+#define TINYJS_LEX_O_RSHIFTUNSIGNED		(UCHAR_MAX+22)			//">>"
+#define TINYJS_LEX_O_TYPEEQUAL			(UCHAR_MAX+23)			//"==="
+#define TINYJS_LEX_O_XORASSIGN			(UCHAR_MAX+24)			//"^="		//※字句解析で検出されているが、構文解析で処理されていない。
 //予約語
-#define TINYJS_LEX_R_BREAK		(UCHAR_MAX+25)		//"break"	//※字句解析で検出されているが、構文解析で処理されていない。
-#define TINYJS_LEX_R_CONTINUE		(UCHAR_MAX+26)		//"continue"	//※字句解析で検出されているが、構文解析で処理されていない。
-#define TINYJS_LEX_R_DO			(UCHAR_MAX+27)		//"do"		//※字句解析で検出されているが、構文解析で処理されていない。
-#define TINYJS_LEX_R_ELSE		(UCHAR_MAX+28)		//"else"
-#define TINYJS_LEX_R_FALSE		(UCHAR_MAX+29)		//"false"
-#define TINYJS_LEX_R_FOR		(UCHAR_MAX+30)		//"for"
-#define TINYJS_LEX_R_FUNCTION		(UCHAR_MAX+31)		//"function"
-#define TINYJS_LEX_R_IF			(UCHAR_MAX+32)		//"if"
-#define TINYJS_LEX_R_NEW		(UCHAR_MAX+33)		//"new"
-#define TINYJS_LEX_R_NULL		(UCHAR_MAX+34)		//"null"
-#define TINYJS_LEX_R_RETURN		(UCHAR_MAX+35)		//"return"
-#define TINYJS_LEX_R_TRUE		(UCHAR_MAX+36)		//"true"
-#define TINYJS_LEX_R_UNDEFINED		(UCHAR_MAX+37)		//"undefined"
-#define TINYJS_LEX_R_VAR		(UCHAR_MAX+38)		//"var"
-#define TINYJS_LEX_R_WHILE		(UCHAR_MAX+39)		//"while"
+#define TINYJS_LEX_R_BREAK			(UCHAR_MAX+25)			//"break"	//※字句解析で検出されているが、構文解析で処理されていない。
+#define TINYJS_LEX_R_CONTINUE			(UCHAR_MAX+26)			//"continue"	//※字句解析で検出されているが、構文解析で処理されていない。
+#define TINYJS_LEX_R_DO				(UCHAR_MAX+27)			//"do"		//※字句解析で検出されているが、構文解析で処理されていない。
+#define TINYJS_LEX_R_ELSE			(UCHAR_MAX+28)			//"else"
+#define TINYJS_LEX_R_FALSE			(UCHAR_MAX+29)			//"false"
+#define TINYJS_LEX_R_FOR			(UCHAR_MAX+30)			//"for"
+#define TINYJS_LEX_R_FUNCTION			(UCHAR_MAX+31)			//"function"
+#define TINYJS_LEX_R_IF				(UCHAR_MAX+32)			//"if"
+#define TINYJS_LEX_R_NEW			(UCHAR_MAX+33)			//"new"
+#define TINYJS_LEX_R_NULL			(UCHAR_MAX+34)			//"null"
+#define TINYJS_LEX_R_RETURN			(UCHAR_MAX+35)			//"return"
+#define TINYJS_LEX_R_TRUE			(UCHAR_MAX+36)			//"true"
+#define TINYJS_LEX_R_UNDEFINED			(UCHAR_MAX+37)			//"undefined"
+#define TINYJS_LEX_R_VAR			(UCHAR_MAX+38)			//"var"
+#define TINYJS_LEX_R_WHILE			(UCHAR_MAX+39)			//"while"
 //-----------------------------------------------------------------------------
 //ST_TinyJS_Var.type
-#define TINYJS_VAR_UNDEFINED		0
-#define TINYJS_VAR_NULL			1			//It seems null is its own data type.
-#define TINYJS_VAR_NUMBER		2			//Number.
-#define TINYJS_VAR_STRING		3			//String.
-#define TINYJS_VAR_FUNCTION		4
-#define TINYJS_VAR_OBJECT		5
-#define TINYJS_VAR_ARRAY		6
-#define TINYJS_VAR_NATIVE		7			//To specify this is a native function.
+#define TINYJS_VAR_UNDEFINED			0
+#define TINYJS_VAR_NULL				1				//It seems null is its own data type.
+#define TINYJS_VAR_NUMBER			2				//Number.
+#define TINYJS_VAR_STRING			3				//String.
+#define TINYJS_VAR_FUNCTION			4
+#define TINYJS_VAR_OBJECT			5
+#define TINYJS_VAR_ARRAY			6
+#define TINYJS_VAR_NATIVE			7				//To specify this is a native function.
 //-----------------------------------------------------------------------------
-typedef struct _ST_TinyJS		ST_TinyJS;
-typedef struct _ST_TinyJS_Lex		ST_TinyJS_Lex;
-typedef struct _ST_TinyJS_Var		ST_TinyJS_Var;
-typedef struct _ST_TinyJS_VarLink	ST_TinyJS_VarLink;
-typedef struct _ST_TinyJS_Context	ST_TinyJS_Context;
+typedef struct _ST_TinyJS			ST_TinyJS;
+typedef struct _ST_TinyJS_Lex			ST_TinyJS_Lex;
+typedef struct _ST_TinyJS_Var			ST_TinyJS_Var;
+typedef struct _ST_TinyJS_VarLink		ST_TinyJS_VarLink;
+typedef struct _ST_TinyJS_Context		ST_TinyJS_Context;
 typedef void TinyJS_Callback(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData);
 //*****************************************************************************
 //	ST_TinyJS
 //*****************************************************************************
 /*typedef*/ struct _ST_TinyJS {
 //public:
-	ST_TinyJS_Var*			root;					//Root of symbol table.			//※要検討:グローバルオブジェクトの事です。Webブラウザでの実装の場合「window」が、Node.jsの場合は「global」がグローバルオブジェクトとなります。rootという変数名はやめて、window,又は,globalに変える方が良いのでは？
+	ST_TinyJS_Var*				root;				//Root of symbol table.			//※要検討:グローバルオブジェクトの事です。Webブラウザでの実装の場合「window」が、Node.jsの場合は「global」がグローバルオブジェクトとなります。rootという変数名はやめて、window,又は,globalに変える方が良いのでは？
 //private:
-	ST_TinyJS_Lex*			lex;					//Current lexer.
-	GSList/*<ST_TinyJS_Var*>*/*	scopes;					//Stack of scopes when parsing.		//※元は先頭がrootで末尾が現在のスタックだったが、逆にして、先頭が現在のスタックで末尾をrootにした。その方がfindInScopes()の実装上も都合が良いし、今後クロージャを作る時にも自然に実装出来るはずだ。リストの末尾方向(rootに向けての方向)へのリンクは、クロージャを作った時点から変更される事は無いので、単純にその時点でのscopesを保持すれば良くなるので。
-	GSList/*<const char*>*/*	callStack;				//Names of places called so we can show when erroring.
-	ST_TinyJS_Var*			stringClass;				//Built in string class.
-	ST_TinyJS_Var*			objectClass;				//Built in object class.
-	ST_TinyJS_Var*			arrayClass;				//Built in array class.
+	ST_TinyJS_Lex*				lex;				//Current lexer.
+	struct _GSList/*<ST_TinyJS_Var*>*/*	scopes;				//Stack of scopes when parsing.		//※元は先頭がrootで末尾が現在のスタックだったが、逆にして、先頭が現在のスタックで末尾をrootにした。その方がfindInScopes()の実装上も都合が良いし、今後クロージャを作る時にも自然に実装出来るはずだ。リストの末尾方向(rootに向けての方向)へのリンクは、クロージャを作った時点から変更される事は無いので、単純にその時点でのscopesを保持すれば良くなるので。
+	struct _GSList/*<const char*>*/*	callStack;			//Names of places called so we can show when erroring.
+	ST_TinyJS_Var*				stringClass;			//Built in string class.
+	ST_TinyJS_Var*				objectClass;			//Built in object class.
+	ST_TinyJS_Var*				arrayClass;			//Built in array class.
 } /*ST_TinyJS*/;
 //public:
 /*static*/ ST_TinyJS* TinyJS_new();
@@ -141,18 +141,18 @@ const char* TinyJS_stackTrace(ST_TinyJS* _this, const char* errMsg);
 //*****************************************************************************
 /*typedef*/ struct _ST_TinyJS_Lex {
 //public:
-	int				tk;					//トークンの種類。(TINYJS_LEX_*,又は,その他の一文字演算子,又は,不正な文字)
-	const char*			tkStr;					//トークンの文字列。
-	int				tokenStart;				//最後に読んだトークン(=tk,tkStr)の、最初の文字の位置。
-	int				tokenEnd;				//最後に読んだトークン(=tk,tkStr)の、最後の文字の次の位置。
+	int					tk;				//トークンの種類。(TINYJS_LEX_*,又は,その他の一文字演算子,又は,不正な文字)
+	const char*				tkStr;				//トークンの文字列。
+	int					tokenStart;			//最後に読んだトークン(=tk,tkStr)の、最初の文字の位置。
+	int					tokenEnd;			//最後に読んだトークン(=tk,tkStr)の、最後の文字の次の位置。
 //private:
 	//When we go into a loop, we use getSubLex() to get a lexer for just the sub-part of the relevant string.
 	//This doesn't re-allocate and copy the string, but instead copies the data pointer and sets dataOwned to false, and dataStart/dataEnd to the relevant things.
-	const char*			data;					//Data string to get tokens from.
-	int				dataStart, dataEnd;			//Start and end position in data string.
-	int				dataPos;				//Position in data (we CAN go past the end of the string here).
-	int				currCh, nextCh;				//現在の文字，次の文字。
-	int				tokenLastEnd;				//一つ前に読んだトークンの、最後の文字の次の位置。
+	const char*				data;				//Data string to get tokens from.
+	int					dataStart, dataEnd;		//Start and end position in data string.
+	int					dataPos;			//Position in data (we CAN go past the end of the string here).
+	int					currCh, nextCh;			//現在の文字，次の文字。
+	int					tokenLastEnd;			//一つ前に読んだトークンの、最後の文字の次の位置。
 } /*ST_TinyJS_Lex*/;
 //public:
 /*static*/ ST_TinyJS_Lex* TinyJS_Lex_new(const char* input, int startChar, int endChar);
@@ -172,13 +172,13 @@ void TinyJS_Lex_getNextToken(ST_TinyJS_Lex* _this);				//Get the text token from
 //Variable class (containing a doubly-linked list of children).
 /*typedef*/ struct _ST_TinyJS_Var {
 //public:
-	GSList/*<ST_TinyJS_VarLink*>*/*	firstChild;
+	struct _GSList/*<ST_TinyJS_VarLink*>*/*	firstChild;
 //private:
-	int				type;					//The type determine the type of the variable - number/string/etc.
-	double				numData;				//The contents of this variable if it is a number.
-	const char*			strData;				//The contents of this variable if it is a string.
-	TinyJS_Callback*		callback;				//Callback for native functions.
-	void*				userData;				//User data passed as second argument to native functions.
+	int					type;				//The type determine the type of the variable - number/string/etc.
+	double					numData;			//The contents of this variable if it is a number.
+	const char*				strData;			//The contents of this variable if it is a string.
+	TinyJS_Callback*			callback;			//Callback for native functions.
+	void*					userData;			//User data passed as second argument to native functions.
 } /*ST_TinyJS_Var*/;
 //public:
 /*static*/ ST_TinyJS_Var* TinyJS_Var_newUndefined();
@@ -233,9 +233,9 @@ void TinyJS_Var_init(ST_TinyJS_Var* _this, int varType);					//Initialisation of
 //*****************************************************************************
 /*typedef*/ struct _ST_TinyJS_VarLink {
 //public:
-	const char*			name;
-	ST_TinyJS_Var*			var;
-	int				owned;
+	const char*				name;
+	ST_TinyJS_Var*				var;
+	int					owned;
 } /*ST_TinyJS_VarLink*/;
 //public:
 /*static*/ ST_TinyJS_VarLink* TinyJS_VarLink_new(ST_TinyJS_Var* v);
@@ -247,9 +247,9 @@ void TinyJS_VarLink_setIntName(ST_TinyJS_VarLink* _this, int n);		//Set the name
 //*****************************************************************************
 /*typedef*/ struct _ST_TinyJS_Context {
 //public:
-	ST_TinyJS_Lex*			lex;					//Current lexer.
-	GSList/*<ST_TinyJS_Var*>*/*	scopes;					//Stack of scopes when parsing.		//※元は先頭がrootで末尾が現在のスタックだったが、逆にして、先頭が現在のスタックで末尾をrootにした。その方がfindInScopes()の実装上も都合が良いし、今後クロージャを作る時にも自然に実装出来るはずだ。リストの末尾方向(rootに向けての方向)へのリンクは、クロージャを作った時点から変更される事は無いので、単純にその時点でのscopesを保持すれば良くなるので。
-	GSList/*<const char*>*/*	callStack;				//Names of places called so we can show when erroring.
+	ST_TinyJS_Lex*				lex;				//Current lexer.
+	struct _GSList/*<ST_TinyJS_Var*>*/*	scopes;				//Stack of scopes when parsing.		//※元は先頭がrootで末尾が現在のスタックだったが、逆にして、先頭が現在のスタックで末尾をrootにした。その方がfindInScopes()の実装上も都合が良いし、今後クロージャを作る時にも自然に実装出来るはずだ。リストの末尾方向(rootに向けての方向)へのリンクは、クロージャを作った時点から変更される事は無いので、単純にその時点でのscopesを保持すれば良くなるので。
+	struct _GSList/*<const char*>*/*	callStack;			//Names of places called so we can show when erroring.
 } /*ST_TinyJS_Context*/;
 #ifdef  __cplusplus
 }//extern "C"
