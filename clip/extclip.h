@@ -77,6 +77,10 @@ int mergesort_r(void* base, size_t num, size_t width, int (*compare)(const void*
 #ifdef  __cplusplus
 }//extern "C"
 #endif//__cplusplus
+//-----------------------------------------------------------------------------
+#include "TinyJS.h"
+#include "TinyJS_Functions.h"
+#include "TinyJS_MathFunctions.h"
 //*****************************************************************************
 //	
 //*****************************************************************************

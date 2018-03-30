@@ -15,7 +15,7 @@
 //	This is a program to run all the tests in the tests folder...
 //
 //=============================================================================
-#include "app.h"
+#include "clip.h"
 //=============================================================================
 //function print(str: string): void
 static void js_print(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) {
