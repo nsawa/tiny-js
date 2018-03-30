@@ -15,3 +15,5 @@ Script/Release/
 run_tests/x64/
 run_tests/Debug/
 run_tests/Release/
+
+tests/*.fail.js

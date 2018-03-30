@@ -19,3 +19,5 @@ IF EXIST	Script\Release\		RMDIR /S /Q	Script\Release\
 IF EXIST	run_tests\x64\		RMDIR /S /Q	run_tests\x64\
 IF EXIST	run_tests\Debug\	RMDIR /S /Q	run_tests\Debug\
 IF EXIST	run_tests\Release\	RMDIR /S /Q	run_tests\Release\
+
+IF EXIST	tests\*.fail.js		DEL		tests\*.fail.js
