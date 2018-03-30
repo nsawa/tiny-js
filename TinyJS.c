@@ -238,7 +238,7 @@ ST_TinyJS_VarLink* TinyJS_functionCall(ST_TinyJS* _this, int* pExec, ST_TinyJS_V
 		//Function, but not executing - just parse args and be done.
 		TinyJS_Lex_match(_this->lex, '(');
 		while(_this->lex->tk != ')') {
-			ST_TinyJS_VarLink* l = TinyJS_base(_this, pExec);
+			TinyJS_base(_this, pExec);
 			if(_this->lex->tk != ')') { TinyJS_Lex_match(_this->lex, ','); }
 		}
 		TinyJS_Lex_match(_this->lex, ')');
