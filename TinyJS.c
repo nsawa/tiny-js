@@ -25,6 +25,8 @@
 //	  尚、メインターゲットはP/ECEですが、(少なくとも現時点では)Visual Studio 2017と、Visual C++ 6.0でもビルド出来ています。
 //	- オリジナル版のTinyJSは明示的なメモリ管理を行っていますが、移植版ではガーベージコレクターの使用を前提としてメモリ管理を省きました。
 //	  P/ECEの場合はclipbmgc.c,又は,clipgc.cモジュールを，Windowsの場合はBoehm GCを使用して下さい。
+//	- オリジナル版のTinyJSを、/clip/keep/tiny-js-master.7z に保存しておきました。
+//	  (Latest commit 56a0c6d on Mar 24 2015。2018/03/30時点の最新リビジョンです。)
 //
 #include "clip.h"
 //*****************************************************************************
@@ -62,7 +64,7 @@ static const char* getJSString(const char* str) {
 //	ST_TinyJS
 //*****************************************************************************
 /*static*/ ST_TinyJS* TinyJS_new() {
-	ST_TinyJS* _this = (ST_TinyJS*)malloc(sizeof(ST_TinyJS));
+	ST_TinyJS* _this = malloc(sizeof(ST_TinyJS));
 	_this->lex       = NULL;
 	_this->scopes    = NULL;
 	_this->callStack = NULL;
@@ -189,7 +191,7 @@ ST_TinyJS_VarLink* TinyJS_functionCall(ST_TinyJS* _this, int* pExec, ST_TinyJS_V
 				//Grab in all parameters.
 				GSList/*<ST_TinyJS_VarLink*>*/* list = func->var->firstChild;
 				while(list) {
-					ST_TinyJS_VarLink* l = (ST_TinyJS_VarLink*)list->data;
+					ST_TinyJS_VarLink* l = list->data;
 					ST_TinyJS_VarLink* tmp = TinyJS_base(_this, pExec);
 					if(*pExec) {
 						if(TinyJS_Var_isPrimitive(tmp->var)) {
@@ -683,7 +685,7 @@ void TinyJS_block(ST_TinyJS* _this, int* pExec) {
 //-----------------------------------------------------------------------------
 //文
 void TinyJS_statement(ST_TinyJS* _this, int* pExec) {
-	ST_TinyJS_Var* scope = (ST_TinyJS_Var*)_this->scopes->data;
+	ST_TinyJS_Var* scope = _this->scopes->data;
 	if((_this->lex->tk == '-') ||
 	   (_this->lex->tk == TINYJS_LEX_ID) ||
 	   (_this->lex->tk == TINYJS_LEX_L_NUM) ||
@@ -883,7 +885,7 @@ void TinyJS_parseFunctionArguments(ST_TinyJS* _this, ST_TinyJS_Var* funcVar) {
 ST_TinyJS_VarLink* TinyJS_findInScopes(ST_TinyJS* _this, const char* name) {
 	GSList/*<ST_TinyJS_Var*>*/* list = _this->scopes;
 	while(list) {
-		ST_TinyJS_Var* scope = (ST_TinyJS_Var*)list->data;
+		ST_TinyJS_Var* scope = list->data;
 		ST_TinyJS_VarLink* l = TinyJS_Var_findChild(scope, name);
 		if(l) { return l; }
 		list = list->next;
@@ -913,7 +915,7 @@ ST_TinyJS_VarLink* TinyJS_findInPrototypeClasses(ST_TinyJS* _this, ST_TinyJS_Var
 }
 //-----------------------------------------------------------------------------
 ST_TinyJS_Context* TinyJS_saveContext(ST_TinyJS* _this) {
-	ST_TinyJS_Context* pSavedContext = (ST_TinyJS_Context*)malloc(sizeof(ST_TinyJS_Context));
+	ST_TinyJS_Context* pSavedContext = malloc(sizeof(ST_TinyJS_Context));
 	pSavedContext->lex       = _this->lex;
 	pSavedContext->scopes    = _this->scopes;
 	pSavedContext->callStack = _this->callStack;
@@ -937,7 +939,7 @@ const char* TinyJS_stackTrace(ST_TinyJS* _this, const char* errMsg) {
 			g_string_append(buf, "\n");
 			g_string_append_printf(buf, "%d", i);
 			g_string_append(buf, ": ");
-			g_string_append(buf, (const char*)list->data);
+			g_string_append(buf, list->data);
 			i++;
 		}
 	}
@@ -949,7 +951,7 @@ const char* TinyJS_stackTrace(ST_TinyJS* _this, const char* errMsg) {
 //	ST_TinyJS_Lex
 //*****************************************************************************
 /*static*/ ST_TinyJS_Lex* TinyJS_Lex_new(const char* input, int startChar, int endChar) {
-	ST_TinyJS_Lex* _this = (ST_TinyJS_Lex*)malloc(sizeof(ST_TinyJS_Lex));
+	ST_TinyJS_Lex* _this = malloc(sizeof(ST_TinyJS_Lex));
 	_this->data      = input;
 	_this->dataStart = startChar;
 	_this->dataEnd   = endChar;
@@ -1339,49 +1341,49 @@ void TinyJS_Lex_getNextToken(ST_TinyJS_Lex* _this) {
 //	ST_TinyJS_Var
 //*****************************************************************************
 /*static*/ ST_TinyJS_Var* TinyJS_Var_newUndefined() {
-	ST_TinyJS_Var* _this = (ST_TinyJS_Var*)malloc(sizeof(ST_TinyJS_Var));
+	ST_TinyJS_Var* _this = malloc(sizeof(ST_TinyJS_Var));
 	TinyJS_Var_setUndefined(_this);
 	return _this;
 }
 //-----------------------------------------------------------------------------
 /*static*/ ST_TinyJS_Var* TinyJS_Var_newNull() {
-	ST_TinyJS_Var* _this = (ST_TinyJS_Var*)malloc(sizeof(ST_TinyJS_Var));
+	ST_TinyJS_Var* _this = malloc(sizeof(ST_TinyJS_Var));
 	TinyJS_Var_setNull(_this);
 	return _this;
 }
 //-----------------------------------------------------------------------------
 /*static*/ ST_TinyJS_Var* TinyJS_Var_newNumber(double val) {
-	ST_TinyJS_Var* _this = (ST_TinyJS_Var*)malloc(sizeof(ST_TinyJS_Var));
+	ST_TinyJS_Var* _this = malloc(sizeof(ST_TinyJS_Var));
 	TinyJS_Var_setNumber(_this, val);
 	return _this;
 }
 //-----------------------------------------------------------------------------
 /*static*/ ST_TinyJS_Var* TinyJS_Var_newString(const char* str) {
-	ST_TinyJS_Var* _this = (ST_TinyJS_Var*)malloc(sizeof(ST_TinyJS_Var));
+	ST_TinyJS_Var* _this = malloc(sizeof(ST_TinyJS_Var));
 	TinyJS_Var_setString(_this, str);
 	return _this;
 }
 //-----------------------------------------------------------------------------
 /*static*/ ST_TinyJS_Var* TinyJS_Var_newFunction() {
-	ST_TinyJS_Var* _this = (ST_TinyJS_Var*)malloc(sizeof(ST_TinyJS_Var));
+	ST_TinyJS_Var* _this = malloc(sizeof(ST_TinyJS_Var));
 	TinyJS_Var_setFunction(_this);
 	return _this;
 }
 //-----------------------------------------------------------------------------
 /*static*/ ST_TinyJS_Var* TinyJS_Var_newObject() {
-	ST_TinyJS_Var* _this = (ST_TinyJS_Var*)malloc(sizeof(ST_TinyJS_Var));
+	ST_TinyJS_Var* _this = malloc(sizeof(ST_TinyJS_Var));
 	TinyJS_Var_setObject(_this);
 	return _this;
 }
 //-----------------------------------------------------------------------------
 /*static*/ ST_TinyJS_Var* TinyJS_Var_newArray() {
-	ST_TinyJS_Var* _this = (ST_TinyJS_Var*)malloc(sizeof(ST_TinyJS_Var));
+	ST_TinyJS_Var* _this = malloc(sizeof(ST_TinyJS_Var));
 	TinyJS_Var_setArray(_this);
 	return _this;
 }
 //-----------------------------------------------------------------------------
 /*static*/ ST_TinyJS_Var* TinyJS_Var_newNative(TinyJS_Callback* callback, void* userData) {
-	ST_TinyJS_Var* _this = (ST_TinyJS_Var*)malloc(sizeof(ST_TinyJS_Var));
+	ST_TinyJS_Var* _this = malloc(sizeof(ST_TinyJS_Var));
 	TinyJS_Var_setNative(_this, callback, userData);
 	return _this;
 }
@@ -1489,7 +1491,7 @@ ST_TinyJS_Var* TinyJS_Var_getParameter(ST_TinyJS_Var* _this, const char* name) {
 ST_TinyJS_VarLink* TinyJS_Var_findChild(ST_TinyJS_Var* _this, const char* name) {
 	GSList/*<ST_TinyJS_VarLink*>*/* list = _this->firstChild;
 	while(list) {
-		ST_TinyJS_VarLink* l = (ST_TinyJS_VarLink*)list->data;
+		ST_TinyJS_VarLink* l = list->data;
 		if(!strcmp(l->name, name)) { return l; }
 		list = list->next;
 	}
@@ -1559,7 +1561,7 @@ int TinyJS_Var_getArrayLength(ST_TinyJS_Var* _this) {
 		int ubound = -1;
 		GSList/*<ST_TinyJS_VarLink*>*/* list = _this->firstChild;
 		while(list) {
-			ST_TinyJS_VarLink* l = (ST_TinyJS_VarLink*)list->data;
+			ST_TinyJS_VarLink* l = list->data;
 			char* endptr;
 			int i = strtoul(l->name, &endptr, 10);
 			if(*endptr == '\0') {
@@ -1598,7 +1600,7 @@ const char* TinyJS_Var_getParsableString(ST_TinyJS_Var* _this) {
 		//Get list of parameters.
 		GSList/*<ST_TinyJS_VarLink*>*/* list = _this->firstChild;
 		while(list) {
-			ST_TinyJS_VarLink* l = (ST_TinyJS_VarLink*)list->data;
+			ST_TinyJS_VarLink* l = list->data;
 			g_string_append(funcStr, l->name);
 			if(list->next) { g_string_append(funcStr, ","); }
 			list = list->next;
@@ -1706,7 +1708,7 @@ ST_TinyJS_Var* TinyJS_Var_deepCopy(ST_TinyJS_Var* _this) {
 		//Copy children.
 		GSList/*<ST_TinyJS_VarLink*>*/* list = _this->firstChild;
 		while(list) {
-			ST_TinyJS_VarLink* l = (ST_TinyJS_VarLink*)list->data;
+			ST_TinyJS_VarLink* l = list->data;
 			ST_TinyJS_Var* tmp;
 			//Don't copy the 'prototype' object...
 			if(!strcmp(l->name, "prototype")) {	//"prototype"ならば…
@@ -1732,7 +1734,7 @@ void TinyJS_Var_trace(ST_TinyJS_Var* _this, const char* indent, const char* name
 		const char* indentStr = strconcat(indent, " ", NULL);
 		GSList/*<ST_TinyJS_VarLink*>*/* list = _this->firstChild;
 		while(list) {
-			ST_TinyJS_VarLink* l = (ST_TinyJS_VarLink*)list->data;
+			ST_TinyJS_VarLink* l = list->data;
 			TinyJS_Var_trace(l->var, indentStr, l->name);
 			list = list->next;
 		}
@@ -1762,7 +1764,7 @@ const char* TinyJS_Var_getJSON(ST_TinyJS_Var* _this, const char* linePrefix) {
 			{
 				GSList/*<ST_TinyJS_VarLink*>*/* list = _this->firstChild;
 				while(list) {
-					ST_TinyJS_VarLink* l = (ST_TinyJS_VarLink*)list->data;
+					ST_TinyJS_VarLink* l = list->data;
 					g_string_append(destination, indentedLinePrefix->str);
 					g_string_append(destination, getJSString(l->name));
 					g_string_append(destination, ": ");
@@ -1810,7 +1812,7 @@ void TinyJS_Var_init(ST_TinyJS_Var* _this, int varType) {
 //	ST_TinyJS_VarLink
 //*****************************************************************************
 /*static*/ ST_TinyJS_VarLink* TinyJS_VarLink_new(ST_TinyJS_Var* v) {
-	ST_TinyJS_VarLink* _this = (ST_TinyJS_VarLink*)malloc(sizeof(ST_TinyJS_VarLink));
+	ST_TinyJS_VarLink* _this = malloc(sizeof(ST_TinyJS_VarLink));
 	_this->name  = "";
 	_this->var   = v;
 	_this->owned = 0;

@@ -60,7 +60,7 @@ static int run_test(const char* fileName) {
 				return 0;	//Ž¸”s(0)
 			}
 			{
-				char* buffer = (char*)calloc(size + 1/*nul*/, 1);
+				char* buffer = calloc(size + 1/*nul*/, 1);
 				fread(buffer, 1, size, fp);
 				fclose(fp);
 				{

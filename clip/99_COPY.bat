@@ -4,8 +4,8 @@ SET BATDIR=%~dp0
 IF "%CLIP%" NEQ "" (
   SET SRCDIR=%CLIP%\
 ) ELSE (
-REM  SET SRCDIR=C:\Home\Share\Piece\clip\
-  SET SRCDIR=..\..\clip\
+  REM SET SRCDIR=C:\Home\Share\Piece\clip\
+      SET SRCDIR=..\..\clip\
 )
 
 REM //--------------------------------------------------------------------------

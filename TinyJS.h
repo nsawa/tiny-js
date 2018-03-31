@@ -25,6 +25,8 @@
 //	  尚、メインターゲットはP/ECEですが、(少なくとも現時点では)Visual Studio 2017と、Visual C++ 6.0でもビルド出来ています。
 //	- オリジナル版のTinyJSは明示的なメモリ管理を行っていますが、移植版ではガーベージコレクターの使用を前提としてメモリ管理を省きました。
 //	  P/ECEの場合はclipbmgc.c,又は,clipgc.cモジュールを，Windowsの場合はBoehm GCを使用して下さい。
+//	- オリジナル版のTinyJSを、/clip/keep/tiny-js-master.7z に保存しておきました。
+//	  (Latest commit 56a0c6d on Mar 24 2015。2018/03/30時点の最新リビジョンです。)
 //
 #ifndef __TINYJS_H__
 #define __TINYJS_H__

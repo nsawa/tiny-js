@@ -25,6 +25,8 @@
 //	  尚、メインターゲットはP/ECEですが、(少なくとも現時点では)Visual Studio 2017と、Visual C++ 6.0でもビルド出来ています。
 //	- オリジナル版のTinyJSは明示的なメモリ管理を行っていますが、移植版ではガーベージコレクターの使用を前提としてメモリ管理を省きました。
 //	  P/ECEの場合はclipbmgc.c,又は,clipgc.cモジュールを，Windowsの場合はBoehm GCを使用して下さい。
+//	- オリジナル版のTinyJSを、/clip/keep/tiny-js-master.7z に保存しておきました。
+//	  (Latest commit 56a0c6d on Mar 24 2015。2018/03/30時点の最新リビジョンです。)
 //
 #include "clip.h"
 //-----------------------------------------------------------------------------
@@ -157,7 +159,7 @@ static void scArrayContains(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* us
 	GSList/*<ST_TinyJS_VarLink*>*/* list = TinyJS_Var_getParameter(funcRoot, "this")->firstChild;
 	int contains = 0;
 	while(list) {
-		ST_TinyJS_VarLink* l = (ST_TinyJS_VarLink*)list->data;
+		ST_TinyJS_VarLink* l = list->data;
 		if(TinyJS_Var_equals(l->var, obj)) {
 			contains = 1;
 			break;
@@ -172,7 +174,7 @@ static void scArrayRemove(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* user
 	ST_TinyJS_Var* arr = TinyJS_Var_getParameter(funcRoot, "this");
 	GSList/*<ST_TinyJS_VarLink*>*/* list1 = arr->firstChild;
 	while(list1) {
-		ST_TinyJS_VarLink* l1 = (ST_TinyJS_VarLink*)list1->data;
+		ST_TinyJS_VarLink* l1 = list1->data;
 		list1 = list1->next;	//「arr->TinyJS_Var_removeLink(l1)」によってlist1が開放される可能性が有るので予め次へ進めておく。
 		if(TinyJS_Var_equals(l1->var, obj)) {
 			int i1 = TinyJS_VarLink_getIntName(l1);
@@ -180,7 +182,7 @@ static void scArrayRemove(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* user
 			{
 				GSList/*<ST_TinyJS_VarLink*>*/* list2 = arr->firstChild;
 				while(list2) {
-					ST_TinyJS_VarLink* l2 = (ST_TinyJS_VarLink*)list2->data;
+					ST_TinyJS_VarLink* l2 = list2->data;
 					int i2 = TinyJS_VarLink_getIntName(l2);
 					if(i2 > i1) { TinyJS_VarLink_setIntName(l2, i2 - 1); }
 					list2 = list2->next;	//こちらは開放される可能性は無いので最後に次へ進めて問題無い。
