@@ -748,13 +748,13 @@ void TinyJS_statement(ST_TinyJS* _this, int* pExec) {
 		TinyJS_Lex_match(_this->lex, '(');
 		{
 			int whileCondStart = _this->lex->tokenStart;
-			TinyJS_base(_this, &noexec);		//Condition.
+			TinyJS_base(_this, &noexec);										//Condition.
 			{
 				ST_TinyJS_Lex* whileCond = TinyJS_Lex_getSubLex(_this->lex, whileCondStart);
 				TinyJS_Lex_match(_this->lex, ')');
 				{
 					int whileBodyStart = _this->lex->tokenStart;
-					TinyJS_statement(_this, &noexec);	//Body.
+					TinyJS_statement(_this, &noexec);							//Body.
 					{
 						ST_TinyJS_Lex* whileBody = TinyJS_Lex_getSubLex(_this->lex, whileBodyStart);
 						ST_TinyJS_Context* pSavedContext = TinyJS_saveContext(_this);
@@ -765,7 +765,7 @@ void TinyJS_statement(ST_TinyJS* _this, int* pExec) {
 									ST_TinyJS_VarLink* cond = TinyJS_base(_this, pExec);	//Condition.
 									if(!TinyJS_Var_getBoolean(cond->var)) { break; }
 								}
-								_this->lex = TinyJS_Lex_reset(whileBody);		//Body.
+								_this->lex = TinyJS_Lex_reset(whileBody);			//Body.
 								TinyJS_statement(_this, pExec);
 							}
 						}
@@ -777,36 +777,42 @@ void TinyJS_statement(ST_TinyJS* _this, int* pExec) {
 	} else if(_this->lex->tk == TINYJS_LEX_R_FOR) {
 		TinyJS_Lex_match(_this->lex, TINYJS_LEX_R_FOR);
 		TinyJS_Lex_match(_this->lex, '(');
-		TinyJS_statement(_this, pExec);		//Initialisation.
+		TinyJS_statement(_this, pExec);													//Initialisation.
 		{
 			int forCondStart = _this->lex->tokenStart;
-			TinyJS_base(_this, &noexec);		//Condition.
+			if(_this->lex->tk != ';') {							//「for(～;空;～)」でなければ…
+				TinyJS_base(_this, &noexec);											//Condition.
+			}
 			{
 				ST_TinyJS_Lex* forCond = TinyJS_Lex_getSubLex(_this->lex, forCondStart);
 				TinyJS_Lex_match(_this->lex, ';');
 				{
 					int forIterStart = _this->lex->tokenStart;
-					TinyJS_base(_this, &noexec);		//Iterator.
+					if(_this->lex->tk != ')') {					//「for(～;～;空)」でなければ…
+						TinyJS_base(_this, &noexec);									//Iterator.
+					}
 					{
 						ST_TinyJS_Lex* forIter = TinyJS_Lex_getSubLex(_this->lex, forIterStart);
 						TinyJS_Lex_match(_this->lex, ')');
 						{
 							int forBodyStart = _this->lex->tokenStart;
-							TinyJS_statement(_this, &noexec);	//Body.
+							TinyJS_statement(_this, &noexec);							//Body.
 							{
 								ST_TinyJS_Lex* forBody = TinyJS_Lex_getSubLex(_this->lex, forBodyStart);
 								ST_TinyJS_Context* pSavedContext = TinyJS_saveContext(_this);
 								if(*pExec) {
 									for(;;) {
 										_this->lex = TinyJS_Lex_reset(forCond);
-										{
+										if(_this->lex->tk) {	//「for(～;空;～)」でなければ…
 											ST_TinyJS_VarLink* cond = TinyJS_base(_this, pExec);	//Condition.
 											if(!TinyJS_Var_getBoolean(cond->var)) { break; }
 										}
 										_this->lex = TinyJS_Lex_reset(forBody);
-										TinyJS_statement(_this, pExec);				//Body.
+										TinyJS_statement(_this, pExec);					//Body.
 										_this->lex = TinyJS_Lex_reset(forIter);
-										TinyJS_base(_this, pExec);				//Iterator.
+										if(_this->lex->tk) {	//「for(～;～;空)」でなければ…
+											TinyJS_base(_this, pExec);				//Iterator.
+										}
 									}
 								}
 								TinyJS_restoreContext(_this, pSavedContext);
