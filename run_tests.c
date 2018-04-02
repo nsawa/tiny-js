@@ -41,7 +41,7 @@ static void js_dump(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData) 
 	TinyJS_trace(tinyJS, "");
 }
 //-----------------------------------------------------------------------------
-static int run_test(const char* fileName) {
+static int run_test(ST_TinyJS* tinyJS, const char* fileName) {
 	//スクリプトファイル名を表示する。
 	printf("TEST %s ", fileName);
 	{
@@ -63,41 +63,32 @@ static int run_test(const char* fileName) {
 				char* buffer = calloc(size + 1/*nul*/, 1);
 				fread(buffer, 1, size, fp);
 				fclose(fp);
+				//グローバルオブジェクトに、テスト結果の初期値(0:失敗)を登録する。
+			//不要	TinyJS_Var_addChild(tinyJS->root, "result", TinyJS_Var_newNumber(0));	⇒不要。undefinedに対するTinyJS_Var_getBoolean()は0を返すので、明示的にresult=0を登録しておいても未定義でも同じだから。
+				//スクリプトを実行する。
+				SEH_try {
+					TinyJS_execute(tinyJS, buffer);
+				} SEH_catch(TinyJS_Exception) {
+					printf("ERROR: %s\n", SEH_info.msg);
+				} SEH_end
 				{
-					//インタプリタを作成する。
-					ST_TinyJS* tinyJS = TinyJS_new();
-					//関数を登録する。
-					TinyJS_registerFunctions(tinyJS);
-					TinyJS_registerMathFunctions(tinyJS);
-					TinyJS_addNative(tinyJS, "function print(str)", js_print, NULL);
-					TinyJS_addNative(tinyJS, "function dump()",     js_dump,  NULL);
-					//グローバルオブジェクトに、テスト結果の初期値(0:失敗)を登録する。
-					TinyJS_Var_addChild(tinyJS->root, "result", TinyJS_Var_newNumber(0));
-					//スクリプトを実行する。
-					SEH_try {
-						TinyJS_execute(tinyJS, buffer);
-					} SEH_catch(TinyJS_Exception) {
-						printf("ERROR: %s\n", SEH_info.msg);
-					} SEH_end
-					{
-						//テスト結果を取得する。
-						int pass = TinyJS_Var_getBoolean(TinyJS_Var_getParameter(tinyJS->root, "result"));
-						if(pass) {
-							printf("PASS\n");
-						} else {
-							//失敗ならば、ログファイルを生成する。
-							const char* buf = strdup_printf("%s.fail.js", fileName);
-							FILE* f = fopen(buf, "wt");
-							if(f) {
-								const char* symbols = TinyJS_Var_getJSON(tinyJS->root, "");
-								fprintf(f, "%s", symbols);
-								fclose(f);
-							}
-							printf("FAIL - symbols written to %s\n", buf);
+					//テスト結果を取得する。
+					int pass = TinyJS_Var_getBoolean(TinyJS_Var_getParameter(tinyJS->root, "result"));
+					if(pass) {
+						printf("PASS\n");
+					} else {
+						//失敗ならば、ログファイルを生成する。
+						const char* buf = strdup_printf("%s.fail.js", fileName);
+						FILE* f = fopen(buf, "wt");
+						if(f) {
+							const char* symbols = TinyJS_Var_getJSON(tinyJS->root, "");
+							fprintf(f, "%s", symbols);
+							fclose(f);
 						}
-						//テスト結果を返す。
-						return pass;
+						printf("FAIL - symbols written to %s\n", buf);
 					}
+					//テスト結果を返す。
+					return pass;
 				}
 			}
 		}
@@ -106,13 +97,17 @@ static int run_test(const char* fileName) {
 //-----------------------------------------------------------------------------
 int main(int argc, char** argv) {
 	int result;
-//{{削除
-//	//メモリリーク検出を開始する。
-//	putenv("GC_LOG_FILE=CON");
-//	GC_set_find_leak(1);
-//}}削除
+	//インタプリタを作成する。
+	ST_TinyJS* tinyJS = TinyJS_new();
+	//関数を登録する。
+	TinyJS_registerFunctions(tinyJS);
+	TinyJS_registerMathFunctions(tinyJS);
+	TinyJS_addNative(tinyJS, "function print(str)", js_print, NULL);
+	TinyJS_addNative(tinyJS, "function dump()",     js_dump,  NULL);
 	//引数が指定されていなければ…
 	if(argc == (1 + 0)) {
+		//グローバルオブジェクトを退避する。
+		ST_TinyJS_Var* root = TinyJS_Var_deepCopy(tinyJS->root);
 		//テスト番号1から、最大でも999まで…
 		int test_num, count = 0, passed = 0;	//test_num:テスト番号,count=テスト実行数,passed=テスト成功数
 		for(test_num = 1; test_num <= 999; test_num++) {
@@ -121,13 +116,11 @@ int main(int argc, char** argv) {
 			//スクリプトファイルが存在しなければ、テストを終了する。
 			struct stat st;
 			if(stat(buf, &st)) { break; }	//Check if the file exists - if not, assume we're at the end of our tests.
+			//グローバルオブジェクトを複製し、今回の実行環境とする。
+			tinyJS->root = TinyJS_Var_deepCopy(root);
 			//テストを実行し、テスト成功ならばテスト成功数を増やす。
-			if(run_test(buf)) { passed++; }
+			if(run_test(tinyJS, buf)) { passed++; }
 			count++;	//テスト実行数を増やす。
-//{{削除
-//			//メモリリークを検出する。
-//			CHECK_LEAKS();
-//}}削除
 		}
 		//テスト実行数、テスト成功数、テスト失敗数を表示する。
 		printf("Done. %d tests, %d pass, %d fail\n", count, passed, count - passed);
@@ -135,11 +128,7 @@ int main(int argc, char** argv) {
 	//引数が一個指定されていたら…
 	} else if(argc == (1 + 1)) {
 		//指定されたスクリプトを実行する。
-		int passed = run_test(argv[1]);
-//{{削除
-//		//メモリリークを検出する。
-//		CHECK_LEAKS();
-//}}削除
+		int passed = run_test(tinyJS, argv[1]);
 		result = !passed;	//テスト成功(1)ならば、正常終了(0)とする。
 	//引数が二個以上指定されていたら…
 	} else {

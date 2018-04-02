@@ -1707,9 +1707,11 @@ ST_TinyJS_Var* TinyJS_Var_mathsOp(ST_TinyJS_Var* _this, ST_TinyJS_Var* v, int op
 ST_TinyJS_Var* TinyJS_Var_deepCopy(ST_TinyJS_Var* _this) {
 	ST_TinyJS_Var* v = TinyJS_Var_newUndefined();
 	//Copy the basic data and type from the variable given, with no children.
-	v->type    = _this->type;
-	v->numData = _this->numData;
-	v->strData = _this->strData;
+	v->type     = _this->type;
+	v->numData  = _this->numData;
+	v->strData  = _this->strData;
+	v->callback = _this->callback;
+	v->userData = _this->userData;
 	{
 		//Copy children.
 		GSList/*<ST_TinyJS_VarLink*>*/* list = _this->firstChild;
