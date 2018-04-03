@@ -150,6 +150,7 @@
     <ClCompile Include="..\TinyJS.c" />
     <ClCompile Include="..\TinyJS_Functions.c" />
     <ClCompile Include="..\TinyJS_MathFunctions.c" />
+    <ClCompile Include="..\TinyJS_TRACE.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\clip\clip.h" />

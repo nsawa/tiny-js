@@ -99,6 +99,14 @@ typedef struct _ST_TinyJS_Var			ST_TinyJS_Var;
 typedef struct _ST_TinyJS_VarLink		ST_TinyJS_VarLink;
 typedef struct _ST_TinyJS_Context		ST_TinyJS_Context;
 typedef void TinyJS_Callback(ST_TinyJS* tinyJS, ST_TinyJS_Var* funcRoot, void* userData);
+//-----------------------------------------------------------------------------
+//TinyJS.cモジュールが文字列を出力する方法をアプリケーション毎に変更出来るようにするために、TinyJS_TRACE()関数だけを別モジュール(TinyJS_TRACE.c)に分離しました。
+//オリジナル版のTinyJSでは、TRACEマクロとしてライブラリのビルド時に変更出来るようになっていましたが、ライブラリのビルド時ではなくアプリケーションのビルド時に変更したいと思ったからです。
+//デフォルトのTinyJS_TRACE()は、TinyJS_TRACE.cにて、stdoutに文字列を出力するだけの関数として定義してあります。
+//アプリケーション側でTinyJS_TRACE()を再定義すると、TinyJS_TRACE.cはリンクされず、アプリケーション側で定義したTinyJS_TRACE()が呼び出されます。
+//TinyJS_TRACE()を再定義出来るようにした理由は、主に、P/ECE環境のためです。(P/ECE環境では、stdoutはUSBに送出されて、画面には表示されないから。)
+//Windows環境の場合は、デフォルトの動作のままで特に不都合は無いので、敢えてTinyJS_TRACE()を再定義する必要はあまり無いと思います。
+void TinyJS_TRACE(const char* msg);
 //*****************************************************************************
 //	ST_TinyJS
 //*****************************************************************************

@@ -1733,11 +1733,11 @@ ST_TinyJS_Var* TinyJS_Var_deepCopy(ST_TinyJS_Var* _this) {
 //-----------------------------------------------------------------------------
 //Dump out the contents of this using trace.
 void TinyJS_Var_trace(ST_TinyJS_Var* _this, const char* indent, const char* name) {
-	printf("%s'%s' = '%s' %s\n",
+	TinyJS_TRACE(strdup_printf("%s'%s' = '%s' %s\n",
 		indent,
 		name,
 		TinyJS_Var_getString(_this),
-		TinyJS_Var_getTypeAsString(_this));
+		TinyJS_Var_getTypeAsString(_this)));
 	{
 		const char* indentStr = strconcat(indent, " ", NULL);
 		GSList/*<ST_TinyJS_VarLink*>*/* list = _this->firstChild;
